@@ -5,12 +5,13 @@ struct ParametrizedFunction <: Function
     θ
 end
 
-# Possible callers
 (pf::ParametrizedFunction)(y, x, args...) = pf.f(y, x, pf.θ, args...)
 
 # Auxiliar function for matrix multiplication
-function gaxpy!(A::AbstractMatrix{Float64}, B::AbstractMatrix{Float64},
-                C::AbstractMatrix{Float64})
+# C = C + A*B
+function gaxpy!(C::AbstractMatrix{Float64},
+                A::AbstractMatrix{Float64},
+                B::AbstractMatrix{Float64})
     n, p = size(A)
     p, m = size(B)
     for j = 1:m
@@ -36,7 +37,7 @@ function sensitivity_equation(Jf::Function, jacobian_buffer)
         Jf((y, dy, J), x, args...)
         # Using the chain rule:
         # dy/dθ += dy/dx*dx/dθ
-        gaxpy!(J, dx, dy)
+        gaxpy!(dy, J, dx)
     end
     return f
 end

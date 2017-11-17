@@ -1,16 +1,16 @@
 @testset "Test sensitivity equation" begin
     function test_fun(y_extended, x, θ)
-        y, dθ, dx = y_extended
+        y, dθ, dxx = y_extended
         # y
         y[1] = θ[1]*x[1] + θ[3]*x[2] + θ[5]*x[3]
         y[2] = θ[2]*x[1] + θ[4]*x[2] + θ[6]*x[3]
         # dx
-        dx[1, 1] = θ[1]
-        dx[2, 1] = θ[2]
-        dx[1, 2] = θ[3]
-        dx[2, 2] = θ[4]
-        dx[1, 3] = θ[5]
-        dx[2, 3] = θ[6]
+        dxx[1, 1] = θ[1]
+        dxx[2, 1] = θ[2]
+        dxx[1, 2] = θ[3]
+        dxx[2, 2] = θ[4]
+        dxx[1, 3] = θ[5]
+        dxx[2, 3] = θ[6]
         # dθ
         dθ[1, 1] = x[1]
         dθ[1, 2] = 0.0
@@ -39,18 +39,20 @@
     x = [1, 2, 3]
     dx = Matrix{Float64}(reshape(1:18, 3, 6))
     k = 1
-    f((y, dy), (x, dx))
+    y_extended = (y, dy)
+    x_extended = (x, dx)
+    f(y_extended, x_extended)
     @test y == [22, 28]
     @test dy == [23.0 49.0 78.0 103.0 133.0 157.0;
-        28.0 65.0 100.0 138.0 172.0 211.0]
-    pf.θ .+= 2
-    f((y, dy), (x, dx))
+                 28.0 65.0 100.0 138.0 172.0 211.0]
+    pf.θ .= Float64[1, 2, 3, 4, 5, 6] + 2
+    f(y_extended, x_extended)
     @test y == [34, 40]
     @test dy == [35.0 79.0 126.0 169.0 217.0 259.0;
-        40.0 95.0 148.0 204.0 256.0 313.0]
+                 40.0 95.0 148.0 204.0 256.0 313.0]
 
-    f.θ .+= 2
-    f((y, dy), (x, dx))
+    f.θ .= Float64[1, 2, 3, 4, 5, 6] + 4
+    f(y_extended, x_extended)
     @test y == [46, 52]
     @test dy == [47.0 109.0 174.0 235.0 301.0 361.0;
         52.0 125.0 196.0 270.0 340.0 415.0]
