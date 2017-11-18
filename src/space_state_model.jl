@@ -20,4 +20,5 @@ function simulate_space_state!(y, f::Function, g::Function, x0,
         # Next iteration
         i+=1
     end
+    return x
 end

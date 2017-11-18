@@ -17,10 +17,11 @@
     buffer1 = copy(x0)
     buffer2 = copy(x0)
     # Simulate
-    simulate_space_state!(y, f, g, x0, time_span;
+    x = simulate_space_state!(y, f, g, x0, time_span;
             buffer1=buffer1, buffer2=buffer2)
     # Test
     @test y == [[1], [0], [1], [0], [1]]
+    @test x == [0, 1]
 end
 
 
@@ -47,8 +48,9 @@ end
     b = Float64[1, 1]
     c = Float64[1, 1]
     args = (a, b, c)
-    simulate_space_state!(y, f, g, x0, time_span, args;
+    x = simulate_space_state!(y, f, g, x0, time_span, args;
         buffer1=buffer1, buffer2=buffer2)
     # Test
     @test y == [[1], [0], [1], [0], [1]]
+    @test x == [0, 1]
 end
