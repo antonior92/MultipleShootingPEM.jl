@@ -2,8 +2,7 @@
     # Problem Dimensions:
     # θ - size (6,); x - size (3,); y - size (2,);
     # dy/dx - size (2, 3); dy/dθ - size(2, 6).
-    function test_fun(y_extended, x, θ)
-        y, dx, dθ = y_extended
+    function test_fun(y, dx, dθ, x, θ)
         # Compute y
         y[1] = θ[1]*x[1] + θ[3]*x[2] + θ[5]*x[3]
         y[2] = θ[2]*x[1] + θ[4]*x[2] + θ[6]*x[3]
