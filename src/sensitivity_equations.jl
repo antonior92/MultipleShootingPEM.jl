@@ -1,12 +1,3 @@
-# Parametrized function. Instancialize a function that has a
-# known dependency on parameter θ.
-struct ParametrizedFunction <: Function
-    f::Function
-    θ
-end
-
-(pf::ParametrizedFunction)(y, x, args...) = pf.f(y, x, pf.θ, args...)
-
 # Be a function: y = f(x, args...) that depends uppon
 # a parameter vector θ, for x dependent on θ and ϕ.
 # Provides a routine for computing y, dy/dθ and dy/dϕ,
@@ -29,9 +20,4 @@ function sensitivity_equation(Jf::Function, jacobian_buffer)
         A_mul_B!(dydϕ, dydx, dxdϕ)
     end
     return f
-end
-
-function sensitivity_equation(Jf::ParametrizedFunction, jacobian_buffer)
-    f = sensitivity_equation(Jf.f, jacobian_buffer)
-    return ParametrizedFunction(f, Jf.θ)
 end

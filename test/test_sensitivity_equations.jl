@@ -33,9 +33,8 @@
     jacobian_buffer = zeros(2, 3)
 
     θ = Float64[1, 2, 3, 4, 5, 6]
-    pf = ParametrizedFunction(test_fun, θ)
 
-    f = sensitivity_equation(pf, jacobian_buffer)
+    f = sensitivity_equation(test_fun, jacobian_buffer)
 
     y = zeros(2)
     dydθ = zeros(2, 6)
@@ -46,22 +45,22 @@
     k = 1
     y_extended = (y, dydθ, dydϕ)
     x_extended = (x, dxdθ, dxdϕ)
-    @time f(y_extended, x_extended)
+    @time f(y_extended, x_extended, θ)
     @test y == [22, 28]
     @test dydθ == [23.0 49.0 78.0 103.0 133.0 157.0;
                     28.0 65.0 100.0 138.0 172.0 211.0]
     @test dydϕ == [22.0 49.0 76.0 103.0 130.0 157.0;
                    28.0 64.0 100.0 136.0 172.0 208.0]
-    pf.θ .= Float64[1, 2, 3, 4, 5, 6] + 2
-    f(y_extended, x_extended)
+    θ .= θ + 2
+    f(y_extended, x_extended, θ)
     @test y == [34, 40]
     @test dydθ == [35.0 79.0 126.0 169.0 217.0 259.0;
                    40.0 95.0 148.0 204.0 256.0 313.0]
     @test dydϕ == [34.0 79.0 124.0 169.0 214.0 259.0;
                    40.0 94.0 148.0 202.0 256.0 310.0]
 
-    f.θ .= Float64[1, 2, 3, 4, 5, 6] + 4
-    f(y_extended, x_extended)
+    θ .= θ + 2
+    f(y_extended, x_extended, θ)
     @test y == [46, 52]
     @test dydθ == [47.0 109.0 174.0 235.0 301.0 361.0;
                    52.0 125.0 196.0 270.0 340.0 415.0]
