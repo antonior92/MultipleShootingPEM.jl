@@ -66,7 +66,9 @@ end
         x_next2[1] = a[1]*b[1]*c[2]*x2[2]
         x_next2[2] = a[1]*b[1]*c[2]*x2[1]
     end
-    function g(y1, y2, x1, x2, k, a, b, c)
+    function g(y, x, k, a, b, c)
+        y1, y2 = y
+        x1, x2 = x
         y1[1] = a[2]*b[2]*c[1]*x1[1]
         y2[1] = a[2]*b[2]*c[1]*x2[1]
     end

@@ -1,7 +1,7 @@
 # Simulate space state model
 # x0 (and x0_2) will be overwritten during execution
-function simulate_space_state!(y::Vector, f::Function, g::Function, x0,
-        time_span::Tuple{Int, Int}, args::Tuple=(); x0_2=deepcopy(x0))
+function simulate_space_state!{T}(y::Vector{T}, f::Function, g::Function, x0::T,
+        time_span::Tuple{Int, Int}, args::Tuple=(); x0_2::T=deepcopy(x0))
 
     # Define buffers
     if mod(time_span[2]-time_span[1]+1, 2) == 0
