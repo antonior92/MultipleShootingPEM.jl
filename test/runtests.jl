@@ -1,5 +1,9 @@
-using MultipleShootingPEM
+import MultipleShootingPEM
+ms = MultipleShootingPEM
 using Base.Test
+using Calculus
 
-# write your own tests here
-@test 1 == 2
+
+include("test_space_state_model.jl")
+include("test_sensitivity_equations.jl")
+include("test_one_shoot_simulation.jl")

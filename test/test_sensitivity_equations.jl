@@ -33,7 +33,7 @@
 
     θ = Float64[1, 2, 3, 4, 5, 6]
 
-    f = sensitivity_equation(test_fun, jacobian_buffer)
+    f = ms.sensitivity_equation(test_fun, jacobian_buffer)
 
     y = zeros(2)
     dydθ = zeros(2, 6)
@@ -44,7 +44,7 @@
     k = 1
     y_extended = (y, dydθ, dydϕ)
     x_extended = (x, dxdθ, dxdϕ)
-    @time f(y_extended, x_extended, θ)
+    f(y_extended, x_extended, θ)
     @test y == [22, 28]
     @test dydθ == [23.0 49.0 78.0 103.0 133.0 157.0;
                     28.0 65.0 100.0 138.0 172.0 211.0]

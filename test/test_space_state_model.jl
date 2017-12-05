@@ -16,8 +16,8 @@
     end
     buffer = deepcopy(x0)
     # Simulate
-    x = simulate_space_state!(y, f, g, x0, time_span;
-                              x0_2=buffer)
+    x = ms.simulate_space_state!(y, f, g, x0, time_span;
+                                 x0_2=buffer)
     # Test
     @test y == [[1], [0], [1], [0], [1]]
     @test x == [0, 1]
@@ -47,8 +47,8 @@ end
     b = Float64[1, 1]
     c = Float64[1, 1]
     args = (a, b, c)
-    x = simulate_space_state!(y, f, g, x0, time_span, args;
-                              x0_2=buffer)
+    x = ms.simulate_space_state!(y, f, g, x0, time_span, args;
+                                 x0_2=buffer)
     # Test
     @test y == [[1], [0], [1], [0], [1]]
     @test x == [0, 1]
@@ -85,8 +85,8 @@ end
     b = Float64[1, 1]
     c = Float64[1, 1]
     args = (a, b, c)
-    x = simulate_space_state!(y, f, g, x0, time_span, args;
-                              x0_2=buffer)
+    x = ms.simulate_space_state!(y, f, g, x0, time_span, args;
+                                 x0_2=buffer)
     # Test
     @test y == [([1], [0]),
                 ([0], [1]),
