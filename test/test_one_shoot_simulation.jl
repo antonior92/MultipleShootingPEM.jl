@@ -55,7 +55,7 @@
         @test vcat(y...) - vcat(oss.ys) ≈ zeros(100)
         @test oss.x ≈ x_final
 
-        ms.new_simulation(oss, x0, θ2)
+        ms.new_simulation!(oss, x0, θ2)
 
         @test vcat(y2...) - vcat(oss.ys) ≈ zeros(100)
         @test oss.x ≈ x_final2
@@ -65,14 +65,14 @@
         function wrapper_simulation(ϕ)
             θ1 = ϕ[1:3]
             x01 = [ϕ[4]]
-            ms.new_simulation(oss, x01, θ1)
+            ms.new_simulation!(oss, x01, θ1)
             return vcat(oss.ys...)
         end
 
         function wrapper_jacobian(ϕ)
            θ1 = ϕ[1:3]
            x01 = [ϕ[4]]
-           ms.new_simulation(oss, x01, θ1)
+           ms.new_simulation!(oss, x01, θ1)
            return hcat(vcat(oss.dydθ...), vcat(oss.dydx0...))
         end
 
@@ -91,7 +91,7 @@
     end
 
     @testset "Test cost function" begin
-        ms.new_simulation(oss, x0, θ)
+        ms.new_simulation!(oss, x0, θ)
         @test ms.cost_function(oss) ≈ 0
     end
 
@@ -99,14 +99,14 @@
         function wrapper_cost(ϕ)
             θ1 = ϕ[1:3]
             x01 = [ϕ[4]]
-            ms.new_simulation(oss, x01, θ1)
+            ms.new_simulation!(oss, x01, θ1)
             return ms.cost_function(oss)
         end
 
         function wrapper_gradient(ϕ)
             θ1 = ϕ[1:3]
             x01 = [ϕ[4]]
-            ms.new_simulation(oss, x01, θ1)
+            ms.new_simulation!(oss, x01, θ1)
             gradθ = zeros(3)
             ms.gradient!(gradθ, oss, "θ")
             gradx0 = zeros(1)
@@ -199,14 +199,14 @@ end
         function wrapper_simulation(ϕ)
            θ1 = ϕ[1:4]
            x01 = ϕ[5:7]
-           ms.new_simulation(oss, x01, θ1)
+           ms.new_simulation!(oss, x01, θ1)
            return vcat(oss.ys...)
         end
 
         function wrapper_jacobian(ϕ)
            θ1 = ϕ[1:4]
            x01 = ϕ[5:7]
-           ms.new_simulation(oss, x01, θ1)
+           ms.new_simulation!(oss, x01, θ1)
            return hcat(vcat(oss.dydθ...), vcat(oss.dydx0...))
         end
 
@@ -222,14 +222,14 @@ end
     end
 
     @testset "Test cost function" begin
-       ms.new_simulation(oss, x0, θ)
+       ms.new_simulation!(oss, x0, θ)
        @test ms.cost_function(oss) ≈ 0
     end
 
     function wrapper_cost(ϕ)
        θ1 = ϕ[1:4]
        x01 = ϕ[5:7]
-       ms.new_simulation(oss, x01, θ1)
+       ms.new_simulation!(oss, x01, θ1)
        return ms.cost_function(oss)
     end
 
@@ -237,7 +237,7 @@ end
        function wrapper_gradient(ϕ)
           θ1 = ϕ[1:4]
           x01 = ϕ[5:7]
-          ms.new_simulation(oss, x01, θ1)
+          ms.new_simulation!(oss, x01, θ1)
           gradθ = zeros(4)
           ms.gradient!(gradθ, oss, "θ")
           gradx0 = zeros(3)

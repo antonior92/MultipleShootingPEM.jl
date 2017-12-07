@@ -70,7 +70,7 @@ function OneShootSimulation{T}(f::Function, g::Function,
         ys, dydθ, dydx0, ys_extended, y_buffer)
 end
 
-function new_simulation{T, N, Ny, Nx, Nθ}(
+function new_simulation!{T, N, Ny, Nx, Nθ}(
         oss::OneShootSimulation{T, N, Ny, Nx, Nθ}, x0::T, θ)
     # Define x0_extended
     copy!(oss.x, x0)
@@ -84,7 +84,7 @@ function new_simulation{T, N, Ny, Nx, Nθ}(
     simulate_space_state!(oss.ys_extended, oss.Jf, oss.Jg, oss.x_extended,
                           oss.time_span, (θ,);
                           x0_2=oss.x_buffer_extended)
-    return
+    return oss
 end
 
 function cost_function{T, N, Ny, Nx, Nθ}(
