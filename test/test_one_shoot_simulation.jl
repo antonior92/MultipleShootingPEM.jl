@@ -27,7 +27,7 @@
                                        [0.5], (1, 100), (3.62,))
 
     # Define initial values
-    time_span = (1, 100)
+    k0 = 1
     Ny = 1
     N = 100
     x0 = [0.5]
@@ -49,7 +49,7 @@
         return
     end
 
-    oss = ms.OneShootSimulation(f, g, x0, time_span, Ny, θ)
+    oss = ms.OneShootSimulation(f, g, x0, y, k0, θ)
 
     @testset "Test function evaluation" begin
         @test vcat(y...) - vcat(oss.ys) ≈ zeros(100)
@@ -92,9 +92,7 @@
 
     @testset "Test cost function" begin
         ms.new_simulation(oss, x0, θ)
-        @test ms.cost_function(oss, y) ≈ 0
-        ms.new_simulation(oss, x0, θ2)
-        @test ms.cost_function(oss, y2) ≈ 0
+        @test ms.cost_function(oss) ≈ 0
     end
 
     @testset "Test gradient" begin
@@ -102,7 +100,7 @@
             θ1 = ϕ[1:3]
             x01 = [ϕ[4]]
             ms.new_simulation(oss, x01, θ1)
-            return ms.cost_function(oss, y)
+            return ms.cost_function(oss)
         end
 
         function wrapper_gradient(ϕ)
@@ -110,9 +108,9 @@
             x01 = [ϕ[4]]
             ms.new_simulation(oss, x01, θ1)
             gradθ = zeros(3)
-            ms.gradient!(gradθ, oss, y, "θ")
+            ms.gradient!(gradθ, oss, "θ")
             gradx0 = zeros(1)
-            ms.gradient!(gradx0, oss, y, "x0")
+            ms.gradient!(gradx0, oss, "x0")
             return vcat(gradθ, gradx0)
         end
 
@@ -163,7 +161,7 @@ end
                                        x0, (1, 10))
 
     # Define initial values
-    time_span = (1, 10)
+    k0 = 1
     Ny = 1
     N = 10
     x0 = [5, 0.6, 0.5]
@@ -189,7 +187,7 @@ end
       return
     end
 
-    oss = ms.OneShootSimulation(f, g, x0, time_span, Ny, θ)
+    oss = ms.OneShootSimulation(f, g, x0, y, k0, θ)
 
     @testset "Test function evaluation" begin
        @test vcat(y...) - vcat(oss.ys) ≈ zeros(10)
@@ -225,14 +223,14 @@ end
 
     @testset "Test cost function" begin
        ms.new_simulation(oss, x0, θ)
-       @test ms.cost_function(oss, y) ≈ 0
+       @test ms.cost_function(oss) ≈ 0
     end
 
     function wrapper_cost(ϕ)
        θ1 = ϕ[1:4]
        x01 = ϕ[5:7]
        ms.new_simulation(oss, x01, θ1)
-       return ms.cost_function(oss, y)
+       return ms.cost_function(oss)
     end
 
     @testset "Test gradient" begin
@@ -241,9 +239,9 @@ end
           x01 = ϕ[5:7]
           ms.new_simulation(oss, x01, θ1)
           gradθ = zeros(4)
-          ms.gradient!(gradθ, oss, y, "θ")
+          ms.gradient!(gradθ, oss, "θ")
           gradx0 = zeros(3)
-          ms.gradient!(gradx0, oss, y, "x0")
+          ms.gradient!(gradx0, oss, "x0")
           return vcat(gradθ, gradx0)
        end
        function finite_difference_gradient(ϕ)

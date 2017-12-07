@@ -2,6 +2,7 @@ struct OneShootSimulation{T, N, Ny, Nx, Nθ}
     f::Function
     g::Function
     x0::T
+    y::Vector{T}
     time_span::Tuple{Int, Int}
     # Sensitivity equations
     Jf::Function
@@ -26,12 +27,13 @@ struct OneShootSimulation{T, N, Ny, Nx, Nθ}
 end
 
 function OneShootSimulation{T}(f::Function, g::Function,
-                               x0::T, time_span::Tuple{Int, Int},
-                               Ny::Int, θ)
+                               x0::T, y::Vector{T}, k0::Int, θ)
     # Get sizes
-    N = time_span[2] - time_span[1] + 1
+    N = length(y)
+    Ny = length(y[1])
     Nx = length(x0)
     Nθ = length(θ)
+    time_span = (k0, k0+N-1)
     # Define x0_extended
     x = copy(x0)
     dxdθ = zeros(Nx, Nθ);
@@ -63,7 +65,7 @@ function OneShootSimulation{T}(f::Function, g::Function,
     simulate_space_state!(ys_extended, Jf, Jg, x_extended,
                           time_span, (θ,); x0_2=x_buffer_extended)
     OneShootSimulation{T, N, Ny, Nx, Nθ}(
-        f, g, x0, time_span, Jf, Jg, x, dxdθ, dxdx0, x_extended,
+        f, g, x0, y, time_span, Jf, Jg, x, dxdθ, dxdx0, x_extended,
         x_buffer, dxdθ_buffer, dxdx0_buffer, x_buffer_extended,
         ys, dydθ, dydx0, ys_extended, y_buffer)
 end
@@ -86,17 +88,17 @@ function new_simulation{T, N, Ny, Nx, Nθ}(
 end
 
 function cost_function{T, N, Ny, Nx, Nθ}(
-        oss::OneShootSimulation{T, N, Ny, Nx, Nθ}, y::Vector{T},
+        oss::OneShootSimulation{T, N, Ny, Nx, Nθ},
         loss=L2DistLoss())
     cost = 0
     for i = 1:N
-        cost += 1/N * value(loss, y[i], oss.ys[i], AvgMode.Sum())
+        cost += 1/N * value(loss, oss.y[i], oss.ys[i], AvgMode.Sum())
     end
     return cost
 end
 
 function gradient!{T, N, Ny, Nx, Nθ}(grad::Vector{Float64},
-        oss::OneShootSimulation{T, N, Ny, Nx, Nθ}, y::Vector{T},
+        oss::OneShootSimulation{T, N, Ny, Nx, Nθ},
         variable="θ", loss=L2DistLoss())
     fill!(grad, 0)
     if variable == "θ"
@@ -106,14 +108,13 @@ function gradient!{T, N, Ny, Nx, Nθ}(grad::Vector{Float64},
     end
 
     for i = 1:N
-        deriv!(oss.y_buffer, loss, y[i], oss.ys[i])
+        deriv!(oss.y_buffer, loss, oss.y[i], oss.ys[i])
         Base.LinAlg.BLAS.gemv!('T', 1.0/N, J[i], oss.y_buffer, 1.0, grad)
     end
 end
 
 function hessian_approx!{T, N, Ny, Nx, Nθ}(hessp::Vector{Float64},
-        oss::OneShootSimulation{T, N, Ny, Nx, Nθ},
-        y::Vector{T}, p::Vector{Float64},
+        oss::OneShootSimulation{T, N, Ny, Nx, Nθ}, p::Vector{Float64},
         variable="θ", loss=L2DistLoss())
     fill!(hessp, 0)
     if variable == "θ"
@@ -124,7 +125,7 @@ function hessian_approx!{T, N, Ny, Nx, Nθ}(hessp::Vector{Float64},
 
     for i = 1:N
         A_mul_B!(oss.y_buffer, J[i], p)
-        oss.y_buffer .*= deriv2.(loss, y[i], oss.ys[i])
+        oss.y_buffer .*= deriv2.(loss, oss.y[i], oss.ys[i])
         Base.LinAlg.BLAS.gemv!('T', 1.0/N, J[i], oss.y_buffer, 1.0, hessp)
     end
 end
