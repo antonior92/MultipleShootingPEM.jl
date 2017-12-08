@@ -1,4 +1,5 @@
-import MultipleShootingPEM
+addprocs()
+@everywhere import MultipleShootingPEM
 ms = MultipleShootingPEM
 using Base.Test
 using Calculus
