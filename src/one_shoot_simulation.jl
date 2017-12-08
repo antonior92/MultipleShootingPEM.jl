@@ -99,8 +99,10 @@ end
 
 function gradient!{T, N, Ny, Nx, Nθ}(grad::Vector{Float64},
         oss::OneShootSimulation{T, N, Ny, Nx, Nθ},
-        variable="θ", loss=L2DistLoss())
-    fill!(grad, 0)
+        variable="θ", loss=L2DistLoss(), accumulat=false)
+    if !accumulat
+        fill!(grad, 0)
+    end
     if variable == "θ"
         J = oss.dydθ
     else
@@ -116,8 +118,10 @@ end
 
 function hessian_approx!{T, N, Ny, Nx, Nθ}(hessp::Vector{Float64},
         oss::OneShootSimulation{T, N, Ny, Nx, Nθ}, p::Vector{Float64},
-        variable="θ", loss=L2DistLoss())
-    fill!(hessp, 0)
+        variable="θ", loss=L2DistLoss(), accumulat=false)
+    if !accumulat
+        fill!(hessp, 0)
+    end
     if variable == "θ"
         J = oss.dydθ
     else
