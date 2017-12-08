@@ -92,7 +92,7 @@ function cost_function{T, N, Ny, Nx, Nθ}(
         loss=L2DistLoss())
     cost = 0
     for i = 1:N
-        cost += 1/N * value(loss, oss.y[i], oss.ys[i], AvgMode.Sum())
+        cost += value(loss, oss.y[i], oss.ys[i], AvgMode.Sum())
     end
     return cost
 end
@@ -109,8 +109,9 @@ function gradient!{T, N, Ny, Nx, Nθ}(grad::Vector{Float64},
 
     for i = 1:N
         deriv!(oss.y_buffer, loss, oss.y[i], oss.ys[i])
-        Base.LinAlg.BLAS.gemv!('T', 1.0/N, J[i], oss.y_buffer, 1.0, grad)
+        Base.LinAlg.BLAS.gemv!('T', 1.0, J[i], oss.y_buffer, 1.0, grad)
     end
+    return grad
 end
 
 function hessian_approx!{T, N, Ny, Nx, Nθ}(hessp::Vector{Float64},
@@ -126,6 +127,7 @@ function hessian_approx!{T, N, Ny, Nx, Nθ}(hessp::Vector{Float64},
     for i = 1:N
         A_mul_B!(oss.y_buffer, J[i], p)
         oss.y_buffer .*= deriv2.(loss, oss.y[i], oss.ys[i])
-        Base.LinAlg.BLAS.gemv!('T', 1.0/N, J[i], oss.y_buffer, 1.0, hessp)
+        Base.LinAlg.BLAS.gemv!('T', 1.0, J[i], oss.y_buffer, 1.0, hessp)
     end
+    return hessp
 end

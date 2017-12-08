@@ -250,7 +250,7 @@ end
        for ϕ in ([-0.005, 0.1, 0.1, 1, 5, 0.6, 0.5],
                  [-0.03, 0.11, 0.1, 2, 5, 0, 0.5],
                  [-0.5, 1.11, 1, 2, 2, 10, 0.5])
-          @test wrapper_gradient(ϕ) ≈ finite_difference_gradient(ϕ) atol=1e-10
+          @test wrapper_gradient(ϕ) ≈ finite_difference_gradient(ϕ) atol=1e-9
        end
     end
 end
