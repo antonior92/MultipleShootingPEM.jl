@@ -36,13 +36,13 @@ function OneShootSimulation{T}(f::Function, g::Function,
     time_span = (k0, k0+N-1)
     # Define x0_extended
     x = copy(x0)
-    dxdθ = zeros(Nx, Nθ);
-    dxdx0 = eye(Nx, Nx);
+    dxdθ = zeros(Nx, Nθ)
+    dxdx0 = eye(Nx, Nx)
     x_extended = (x, dxdθ, dxdx0)
     # Define x_buffer
     x_buffer = copy(x0)
-    dxdθ_buffer = zeros(Nx, Nθ);
-    dxdx0_buffer = eye(Nx, Nx);
+    dxdθ_buffer = zeros(Nx, Nθ)
+    dxdx0_buffer = eye(Nx, Nx)
     x_buffer_extended = (x_buffer, dxdθ_buffer, dxdx0_buffer)
     # define ys extended
     ys_extended = Vector{Tuple{T, Matrix{Float64},Matrix{Float64}}}(N)
@@ -56,7 +56,8 @@ function OneShootSimulation{T}(f::Function, g::Function,
         ys_extended[i] = (ys[i], dydθ[i], dydx0[i])
     end
     # Define auxiliar buffers
-    buffer_Jf = zeros(Nx, Nx); buffer_Jg = zeros(Ny, Nx);
+    buffer_Jf = zeros(Nx, Nx)
+    buffer_Jg = zeros(Ny, Nx)
     y_buffer = zeros(Ny)
     # Sensitivity equations
     Jf = sensitivity_equation(f, buffer_Jf)

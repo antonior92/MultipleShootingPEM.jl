@@ -1,3 +1,6 @@
+addprocs()
+@everywhere import MultipleShootingPEM
+ms = MultipleShootingPEM
 #@testset "Test on logistic map" begin
 # Define logistic map
 function logistic_f(x_next, x, k, θ)

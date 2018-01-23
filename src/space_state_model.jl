@@ -3,7 +3,8 @@
 function simulate_space_state!{T}(y::Vector{T}, f::Function, g::Function, x0::T,
         time_span::Tuple{Int, Int}, args::Tuple=(); x0_2::T=deepcopy(x0))
 
-    # Define buffers
+    # Define buffers (In order to guarantee it always end up
+    # with x = x0 in the final iteration)
     if mod(time_span[2]-time_span[1]+1, 2) == 0
         x = x0
         x_next = x0_2
