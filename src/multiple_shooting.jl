@@ -110,11 +110,15 @@ function gradient_θ!{T, N, Ny, Nx, Nθ, M}(
     end
 end
 
-function initialize_instance_everywhere{T}(instance::T, nprocess)
-    instance_remote = Vector{Union{Future, T}}(nprocess)
-    instance_remote[1] = deepcopy(instance)
-    for p in 2:nprocess
-            instance_remote[p] = remotecall(deepcopy, p, instance)
+function deepcopy_everywhere{T}(instance::T, list_procs)
+    instance_remote = Vector{Union{Future, T}}(length(list_procs))
+    for i in 1:length(list_procs)
+        proc = list_procs[i]
+        if proc == 1
+            instance_remote[i] = deepcopy(instance)
+        else
+            instance_remote[i] = remotecall(deepcopy, proc, instance)
+        end
     end
     return instance_remote
 end

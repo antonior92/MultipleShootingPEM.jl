@@ -92,7 +92,7 @@ end
     function wrapper_gradient(θ1)
         ms.new_simulation!(multiple_shoot, x0_list, θ1)
         gradθ = zeros(3)
-        gradθ_remote = ms.initialize_instance_everywhere(gradθ, nprocess)
+        gradθ_remote = ms.deepcopy_everywhere(gradθ, 1:nprocess)
         ms.gradient_θ!(gradθ, gradθ_remote, multiple_shoot)
         return gradθ
     end
@@ -105,8 +105,8 @@ end
     # fails when trying parameters in the
     # chaotic region
     for θ in ([3.21, 3.2, 1.00],
-             [3.21, 1.2, 1.54],
-             [2.56, 3.27, 1.54])
+            [3.21, 1.2, 1.54],
+            [2.56, 3.27, 1.54])
         @test wrapper_gradient(θ) ≈ finite_difference_gradient(θ) rtol=1e-4
     end
 end
