@@ -1,4 +1,5 @@
-addprocs()
+nprocess = 5
+addprocs(nprocess-1)
 @everywhere import MultipleShootingPEM
 ms = MultipleShootingPEM
 #@testset "Test on logistic map" begin
@@ -74,9 +75,51 @@ multiple_shoot = ms.MultipleShooting(f, g, x0_list,
         @test 2*ys1 ≈ ys2
     end
 end
+
 @testset "Test cost funciton" begin
     ms.new_simulation!(multiple_shoot, x0_list, [3.78, 3.78, 1.00])
     @test ms.cost_function(multiple_shoot) ≈ 0.0
     ms.new_simulation!(multiple_shoot, x0_list, [3.78, 3.78, 2.00])
     @test ms.cost_function(multiple_shoot) ≈ sum(vcat(y...).^2)
+end
+
+@testset "Test gradient θ" begin
+    function wrapper_cost(θ1)
+        ms.new_simulation!(multiple_shoot, x0_list, θ1)
+        return ms.cost_function(multiple_shoot)
+    end
+
+    function wrapper_gradient(θ1)
+        ms.new_simulation!(multiple_shoot, x0_list, θ1)
+        gradθ = zeros(3)
+        gradθ_remote = ms.initialize_instance_everywhere(gradθ, nprocess)
+        ms.gradient_θ!(gradθ, gradθ_remote, multiple_shoot)
+        return gradθ
+    end
+
+    function finite_difference_gradient(θ)
+        return Calculus.gradient(wrapper_cost, θ)
+    end
+
+    # OBS: finite difference approximation
+    # fails when trying parameters in the
+    # chaotic region
+    for θ in ([3.21, 3.2, 1.00],
+             [3.21, 1.2, 1.54],
+             [2.56, 3.27, 1.54])
+        @test wrapper_gradient(θ) ≈ finite_difference_gradient(θ) rtol=1e-4
+    end
+end
+
+
+@testset "Test initialize_instance_everywhere" begin
+    mat = ones(10, 10)
+    mat_remote = ms.initialize_instance_everywhere(mat, 5)
+    for i =1:5
+        if i != 1
+            @test isa(mat_remote[i], Future)
+            @test mat_remote[i].where == i
+        end
+        @test fetch(mat_remote[i]) == mat
+    end
 end
