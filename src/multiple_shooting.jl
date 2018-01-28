@@ -81,7 +81,7 @@ function gradient_θ!{T, N, Ny, Nx, Nθ, M}(
         end
     end
     if !accumulat
-        fill!(grad, 0)
+        fill!(grad, 0.0)
     end
     # Make all the computations on remote instances
     first_evaluation = trues(nprocess)
@@ -110,8 +110,49 @@ function gradient_θ!{T, N, Ny, Nx, Nθ, M}(
     end
 end
 
+
+function gradient_x0!{T, N, Ny, Nx, Nθ, M}(
+        grad::Vector{Vector{Float64}},
+        grad_remote::Vector{Union{Future, Vector{Float64}}},
+        ms::MultipleShooting{T, N, Ny, Nx, Nθ, M},
+        loss=L2DistLoss(), accumulat=false)
+    variable="x0"
+    # Set initial values to zero if not accumulating
+    if !accumulat
+        for i = 1:M
+            fill!(grad[i], 0.0)
+        end
+    end
+    # Make all the computations on remote instances
+    for i = 1:M
+        proc = ms.list_procs[i]
+        if proc == 1
+            gradient!(grad_remote[i], ms.simulations[i],
+                      variable, loss, false)
+        else
+            grad_remote[i] = remotecall(gradient!, proc,
+                                    fetch(grad_remote[i]),
+                                    fetch(ms.simulations[i]), variable,
+                                    loss, false)
+        end
+    end
+    # Put everything togeter
+    for i = 1:M
+        proc = ms.list_procs[i]
+        if proc == 1
+            Base.LinAlg.axpy!(1, grad_remote[i], grad[i])
+        else
+            Base.LinAlg.axpy!(1, fetch(grad_remote[i]), grad[i])
+        end
+    end
+end
+
 function deepcopy_everywhere{T}(instance::T, list_procs)
-    instance_remote = Vector{Union{Future, T}}(length(list_procs))
+    if all(list_procs .== 1)
+        instance_remote = Vector{Union{T}}(length(list_procs))
+    else
+        instance_remote = Vector{Union{Future, T}}(length(list_procs))
+    end
     for i in 1:length(list_procs)
         proc = list_procs[i]
         if proc == 1

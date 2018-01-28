@@ -1,4 +1,5 @@
-nprocess = 5
+list_procs = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5]
+nprocess = maximum(list_procs)
 addprocs(nprocess-1)
 @everywhere import MultipleShootingPEM
 ms = MultipleShootingPEM
@@ -63,7 +64,7 @@ end
 end
 multiple_shoot = ms.MultipleShooting(f, g, x0_list,
                                      y, k0_list, θ,
-                                     [1, 1, 2, 2, 3, 3, 4, 4, 5, 5])
+                                     list_procs)
 
 @testset "Test function evaluation" begin
     for m = 1:10
@@ -111,6 +112,35 @@ end
     end
 end
 
+@testset "Test gradient x0" begin
+    function wrapper_cost(x0_expanded)
+        x0_list = [[x0] for x0 in x0_expanded]
+        ms.new_simulation!(multiple_shoot, x0_list, θ)
+        return ms.cost_function(multiple_shoot)
+    end
+
+    function wrapper_gradient(x0_expanded)
+        x0_list = [[x0] for x0 in x0_expanded]
+        ms.new_simulation!(multiple_shoot, x0_list, θ)
+        gradx0 = ms.deepcopy_everywhere(zeros(1), ones(list_procs))
+        gradx0_remote = ms.deepcopy_everywhere(zeros(1), list_procs)
+        ms.gradient_x0!(gradx0, gradx0_remote, multiple_shoot)
+        gradx0_expanded = [g[1] for g in gradx0]
+        return gradx0_expanded
+    end
+
+    function finite_difference_gradient(x0_expanded)
+        return Calculus.gradient(wrapper_cost, x0_expanded)
+    end
+
+    # OBS: finite difference approximation
+    # fails when trying parameters in the
+    # chaotic region
+    for x0_expanded in (collect(linspace(0.2, 0.3, 10)),
+                        collect(linspace(0.1, 0.8, 10)))
+        @test wrapper_gradient(x0_expanded) ≈ finite_difference_gradient(x0_expanded) rtol=1e-4
+    end
+end
 
 @testset "Test initialize_instance_everywhere" begin
     mat = ones(10, 10)
