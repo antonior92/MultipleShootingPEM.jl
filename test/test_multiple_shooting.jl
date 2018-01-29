@@ -94,7 +94,7 @@ end
         ms.new_simulation!(multiple_shoot, x0_list, θ1)
         gradθ = zeros(3)
         gradθ_remote = ms.deepcopy_everywhere(gradθ, 1:nprocess)
-        ms.gradient_θ!(gradθ, gradθ_remote, multiple_shoot)
+        ms.gradient!(gradθ, gradθ_remote, multiple_shoot, "θ")
         return gradθ
     end
 
@@ -124,7 +124,7 @@ end
         ms.new_simulation!(multiple_shoot, x0_list, θ)
         gradx0 = ms.deepcopy_everywhere(zeros(1), ones(list_procs))
         gradx0_remote = ms.deepcopy_everywhere(zeros(1), list_procs)
-        ms.gradient_x0!(gradx0, gradx0_remote, multiple_shoot)
+        ms.gradient!(gradx0, gradx0_remote, multiple_shoot, "x0")
         gradx0_expanded = [g[1] for g in gradx0]
         return gradx0_expanded
     end
@@ -138,13 +138,13 @@ end
     # chaotic region
     for x0_expanded in (collect(linspace(0.2, 0.3, 10)),
                         collect(linspace(0.1, 0.8, 10)))
-        @test wrapper_gradient(x0_expanded) ≈ finite_difference_gradient(x0_expanded) rtol=1e-4
+        @test wrapper_gradient(x0_expanded) ≈ finite_difference_gradient(x0_expanded) rtol=1e-3
     end
 end
 
 @testset "Test initialize_instance_everywhere" begin
     mat = ones(10, 10)
-    mat_remote = ms.initialize_instance_everywhere(mat, 5)
+    mat_remote = ms.deepcopy_everywhere(mat, 1:5)
     for i =1:5
         if i != 1
             @test isa(mat_remote[i], Future)
