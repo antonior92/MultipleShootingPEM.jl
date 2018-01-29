@@ -1,6 +1,5 @@
 module MultipleShootingPEM
 
-using ParallelDataTransfer
 using LossFunctions
 
 include("../src/sensitivity_equations.jl")
