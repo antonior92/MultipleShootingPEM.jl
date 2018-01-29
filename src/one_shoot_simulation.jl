@@ -35,12 +35,12 @@ function OneShootSimulation{T}(f::Function, g::Function,
     Nθ = length(θ)
     time_span = (k0, k0+N-1)
     # Define x0_extended
-    x = copy(x0)
+    x = deepcopy(x0)
     dxdθ = zeros(Nx, Nθ)
     dxdx0 = eye(Nx, Nx)
     x_extended = (x, dxdθ, dxdx0)
     # Define x_buffer
-    x_buffer = copy(x0)
+    x_buffer = deepcopy(x0)
     dxdθ_buffer = zeros(Nx, Nθ)
     dxdx0_buffer = eye(Nx, Nx)
     x_buffer_extended = (x_buffer, dxdθ_buffer, dxdx0_buffer)
@@ -66,7 +66,7 @@ function OneShootSimulation{T}(f::Function, g::Function,
     simulate_space_state!(ys_extended, Jf, Jg, x_extended,
                           time_span, (θ,); x0_2=x_buffer_extended)
     OneShootSimulation{T, N, Ny, Nx, Nθ}(
-        f, g, x0, y, time_span, Jf, Jg, x, dxdθ, dxdx0, x_extended,
+        f, g, deepcopy(x0), y, time_span, Jf, Jg, x, dxdθ, dxdx0, x_extended,
         x_buffer, dxdθ_buffer, dxdx0_buffer, x_buffer_extended,
         ys, dydθ, dydx0, ys_extended, y_buffer)
 end
@@ -74,6 +74,7 @@ end
 function new_simulation!{T, N, Ny, Nx, Nθ}(
         oss::OneShootSimulation{T, N, Ny, Nx, Nθ}, x0::T, θ)
     # Define x0_extended
+    copy!(oss.x0, x0)
     copy!(oss.x, x0)
     copy!(oss.dxdθ, zeros(Nx, Nθ))
     copy!(oss.dxdx0, eye(Nx, Nx))
@@ -136,3 +137,9 @@ function hessian_approx!{T, N, Ny, Nx, Nθ}(hessp::Vector{Float64},
     end
     return hessp
 end
+
+# Get functions (usefull when using julia native parallel functions)
+get_x0(oss::OneShootSimulation) = oss.x0
+get_x(oss::OneShootSimulation) = oss.x
+get_dxdx0(oss::OneShootSimulation) = oss.dxdx0
+get_dxdθ(oss::OneShootSimulation) = oss.dxdθ
