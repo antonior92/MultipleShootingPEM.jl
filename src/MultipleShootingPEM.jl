@@ -2,9 +2,9 @@ module MultipleShootingPEM
 
 using LossFunctions
 
-include("../src/sensitivity_equations.jl")
-include("../src/space_state_model.jl")
-include("../src/one_shoot_simulation.jl")
-include("../src/multiple_shooting.jl")
+include("sensitivity_equations.jl")
+include("space_state_model.jl")
+include("one_shoot_simulation.jl")
+include("multiple_shooting.jl")
 
 end # module
