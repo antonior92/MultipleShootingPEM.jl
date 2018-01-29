@@ -27,8 +27,8 @@ function MultipleShooting{T}(f::Function, g::Function,
         if proc == 1
             simulations[i] = OneShootSimulation(f, g, x0, yi, k0, θ)
         else
-            simulations[i] = @spawnat(proc, OneShootSimulation(f, g, x0,
-                                                               yi, k0, θ))
+            simulations[i] = @spawnat(proc,
+                OneShootSimulation(f, g, x0, yi, k0, θ))
         end
     end
     MultipleShooting{T, N, Ny, Nx, Nθ, M}(simulations, sort(list_procs), list_N)
@@ -121,6 +121,7 @@ function derivatives_θ!{T, N, Ny, Nx, Nθ, M}(
             Base.LinAlg.axpy!(1, fetch(dvec_remote[proc]), dvec)
         end
     end
+    return dvec
 end
 
 
@@ -171,6 +172,7 @@ function derivatives_x0!{T, N, Ny, Nx, Nθ, M}(
             Base.LinAlg.axpy!(1, fetch(dvec_remote[i]), dvec[i])
         end
     end
+    return dvec
 end
 
 function deepcopy_everywhere{T}(instance::T, list_procs)
@@ -191,8 +193,7 @@ function deepcopy_everywhere{T}(instance::T, list_procs)
 end
 
 function gradient!{T, N, Ny, Nx, Nθ, M}(
-        grad,
-        grad_remote,
+        grad, grad_remote,
         ms::MultipleShooting{T, N, Ny, Nx, Nθ, M},
         variable="θ", loss=L2DistLoss(), accumulat=false)
     if variable == "θ"
@@ -204,8 +205,7 @@ end
 
 
 function hessian_approx!{T, N, Ny, Nx, Nθ, M}(
-        hessp,
-        hessp_remote,
+        hessp, hessp_remote,
         ms::MultipleShooting{T, N, Ny, Nx, Nθ, M}, p,
         variable="θ", loss=L2DistLoss(), accumulat=false)
     if variable == "θ"
@@ -215,4 +215,56 @@ function hessian_approx!{T, N, Ny, Nx, Nθ, M}(
         derivatives_x0!(hessp, hessp_remote, ms,
                         loss, accumulat, "hessian_approx", p)
     end
+end
+
+function constr!{T, N, Ny, Nx, Nθ, M}(
+        constr::Vector{Vector{Float64}},
+        ms::MultipleShooting{T, N, Ny, Nx, Nθ, M})
+    # Get x
+    for i = 1:M-1
+        proc = ms.list_procs[i]
+        if proc == 1
+            constr[i] .= ms.simulations[i].x
+        else
+            constr[i] .= remotecall_fetch(get_x, proc, fetch(ms.simulations[i]))
+        end
+    end
+    # subtract x0
+    for i = 2:M
+        proc = ms.list_procs[i]
+        if proc == 1
+            Base.LinAlg.axpy!(-1, ms.simulations[i].x0, constr[i-1])
+        else
+            Base.LinAlg.axpy!(-1,
+                remotecall_fetch(get_x0, proc, fetch(ms.simulations[i])),
+                constr[i-1])
+        end
+    end
+    return constr
+end
+
+function constr_jac!{T, N, Ny, Nx, Nθ, M}(
+        jac::Vector{Matrix{Float64}},
+        ms::MultipleShooting{T, N, Ny, Nx, Nθ, M},
+        variable="θ")
+    # Get x
+    for i = 1:M-1
+        proc = ms.list_procs[i]
+        if proc == 1
+            if variable == "x0"
+                jac[i] .= get_dxdx0(ms.simulations[i])
+            elseif variable == "θ"
+                jac[i] .= get_dxdθ(ms.simulations[i])
+            end
+        else
+            if variable == "x0"
+                jac[i] .= remotecall_fetch(get_dxdx0, proc,
+                                           fetch(ms.simulations[i]))
+            elseif variable == "θ"
+                jac[i] .= remotecall_fetch(get_dxdθ, proc,
+                                           fetch(ms.simulations[i]))
+            end
+        end
+    end
+    return jac
 end

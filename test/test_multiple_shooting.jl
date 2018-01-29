@@ -99,7 +99,7 @@ end
     end
 
     function finite_difference_gradient(θ)
-        return Calculus.gradient(wrapper_cost, θ)
+        return Calculus.gradient(wrapper_cost, θ, :central)
     end
 
     # OBS: finite difference approximation
@@ -107,8 +107,8 @@ end
     # chaotic region
     for θ in ([3.21, 3.2, 1.00],
             [3.21, 1.2, 1.54],
-            [2.56, 3.27, 1.54])
-        @test wrapper_gradient(θ) ≈ finite_difference_gradient(θ) rtol=1e-4
+            [3.56, 3.07, 1.54])
+        @test wrapper_gradient(θ) ≈ finite_difference_gradient(θ) rtol=1e-7
     end
 end
 
@@ -130,7 +130,7 @@ end
     end
 
     function finite_difference_gradient(x0_expanded)
-        return Calculus.gradient(wrapper_cost, x0_expanded)
+        return Calculus.gradient(wrapper_cost, x0_expanded, :central)
     end
 
     # OBS: finite difference approximation
@@ -138,7 +138,7 @@ end
     # chaotic region
     for x0_expanded in (collect(linspace(0.2, 0.3, 10)),
                         collect(linspace(0.1, 0.8, 10)))
-        @test wrapper_gradient(x0_expanded) ≈ finite_difference_gradient(x0_expanded) rtol=1e-3
+        @test wrapper_gradient(x0_expanded) ≈ finite_difference_gradient(x0_expanded) rtol=1e-5
     end
 end
 
@@ -151,5 +151,73 @@ end
             @test mat_remote[i].where == i
         end
         @test fetch(mat_remote[i]) == mat
+    end
+end
+
+@testset "Test constraint" begin
+    constr = deepcopy(x0_list)[1:9]
+    ms.new_simulation!(multiple_shoot, x0_list, [3.78, 3.78, 1.00])
+    expected_result = fill(zeros(1), 9)
+    ms.constr!(constr, multiple_shoot)
+    @test ms.constr!(constr, multiple_shoot) == expected_result
+    ms.new_simulation!(multiple_shoot, x0_list, [3.78, 3.78, 2.00])
+    expected_result = fill(zeros(1), 9)
+    @test ms.constr!(constr, multiple_shoot) == expected_result
+end
+
+@testset "Test constraint Jacobian θ" begin
+    function wrapper_constr(θ1)
+        ms.new_simulation!(multiple_shoot, x0_list, θ1)
+        constr = deepcopy(x0_list)[1:9]
+        ms.constr!(constr, multiple_shoot)
+        return vcat(constr...)
+    end
+
+    function wrapper_jacobian(θ1)
+        ms.new_simulation!(multiple_shoot, x0_list, θ1)
+        jac = [zeros(1, 3) for i = 1:9]
+        ms.constr_jac!(jac, multiple_shoot, "θ")
+        return vcat(jac...)
+    end
+
+    function finite_difference_jacobian(θ1)
+        return Calculus.jacobian(wrapper_constr, θ1, :central)
+    end
+
+    # OBS: finite difference approximation
+    # fails when trying parameters in the
+    # chaotic region
+    for θ in ([3.21, 3.2, 1.00],
+              [3.21, 1.2, 1.54],
+              [3.56, 3.07, 1.54])
+        @test wrapper_jacobian(θ) ≈ finite_difference_jacobian(θ) rtol=1e-6
+    end
+end
+
+@testset "Test constraint Jacobian x0" begin
+    function wrapper_constr(x0_expanded)
+        x0_list = [[x0] for x0 in x0_expanded]
+        ms.new_simulation!(multiple_shoot, x0_list, θ)
+        constr = [zeros(1) for i = 1:9]
+        ms.constr!(constr, multiple_shoot)
+        return vcat(constr...)
+    end
+
+    function wrapper_jacobian(x0_expanded)
+        x0_list = [[x0] for x0 in x0_expanded]
+        ms.new_simulation!(multiple_shoot, x0_list, θ)
+        jac = [zeros(1, 1) for i = 1:9]
+        ms.constr_jac!(jac, multiple_shoot, "x0")
+        return ([diagm(squeeze(vcat(jac...), 2)) zeros(9, 1)] -
+                diagm(ones(9), 1)[1:9, :])
+    end
+
+    function finite_difference_jacobian(x0_expanded)
+        return Calculus.jacobian(wrapper_constr, x0_expanded, :central)
+    end
+
+    for x0_expanded in (collect(linspace(0.2, 0.3, 10)),
+                        collect(linspace(0.1, 0.8, 10)))
+        @test wrapper_jacobian(x0_expanded) ≈ finite_difference_jacobian(x0_expanded) rtol=1e-3
     end
 end
