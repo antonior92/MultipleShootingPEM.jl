@@ -181,22 +181,6 @@ function derivatives_x0!{T, N, Ny, Nx, Nθ, M}(
     return dvec
 end
 
-function deepcopy_everywhere{T}(instance::T, list_procs)
-    if all(list_procs .== 1)
-        instance_remote = Vector{Union{T}}(length(list_procs))
-    else
-        instance_remote = Vector{Union{Future, T}}(length(list_procs))
-    end
-    for i in 1:length(list_procs)
-        proc = list_procs[i]
-        if proc == 1
-            instance_remote[i] = deepcopy(instance)
-        else
-            instance_remote[i] = remotecall(deepcopy, proc, instance)
-        end
-    end
-    return instance_remote
-end
 
 function gradient!{T, N, Ny, Nx, Nθ, M}(
         grad, ms::MultipleShooting{T, N, Ny, Nx, Nθ, M},
@@ -269,4 +253,51 @@ function constr_jac!{T, N, Ny, Nx, Nθ, M}(
         end
     end
     return jac
+end
+
+function build_extended_vector!(θ_extended, θ, x0_list, Nθ, M, Nx)
+    k = 1
+    for i = 1:Nθ
+        θ_extended[k] = θ[i]
+        k += 1
+    end
+    for i = 1:M
+        for j = 1:Nx
+            θ_extended[k] = x0_list[i][j]
+            k += 1
+        end
+    end
+    return θ_extended
+end
+
+function read_extended_vector!(θ, x0_list, θ_extended, Nθ, M, Nx)
+    k = 1
+    for i = 1:Nθ
+        θ[i] = θ_extended[k]
+        k += 1
+    end
+    for i = 1:M
+        for j = 1:Nx
+            x0_list[i][j] = θ_extended[k]
+            k += 1
+        end
+    end
+    return θ, x0_list
+end
+
+function deepcopy_everywhere{T}(instance::T, list_procs)
+    if all(list_procs .== 1)
+        instance_remote = Vector{Union{T}}(length(list_procs))
+    else
+        instance_remote = Vector{Union{Future, T}}(length(list_procs))
+    end
+    for i in 1:length(list_procs)
+        proc = list_procs[i]
+        if proc == 1
+            instance_remote[i] = deepcopy(instance)
+        else
+            instance_remote[i] = remotecall(deepcopy, proc, instance)
+        end
+    end
+    return instance_remote
 end
