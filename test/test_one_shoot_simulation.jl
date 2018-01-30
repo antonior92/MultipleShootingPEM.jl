@@ -1,4 +1,4 @@
-@testset "Test on logistic map" begin
+@testset "Test single shooting on logistic map" begin
     # Define logistic map
     function logistic_f(x_next, x, k, θ)
         x_next .=  θ*x - θ*x.^2
@@ -129,7 +129,7 @@
     end
 end
 
-@testset "Test on linear problem" begin
+@testset "Test single shooting on linear problem" begin
     # From example 2.11, "Linear System Theory and design" Chen
     # With not very realistic values
     # Define linear function
