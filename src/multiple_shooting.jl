@@ -72,13 +72,15 @@ function derivatives_θ!{T, N, Ny, Nx, Nθ, M}(
         p::Vector{Float64}=Float64[])
     variable="θ"
     # Set initial values to zero if not accumulating
-    nprocess = maximum(ms.list_procs)
-    for proc in 1:nprocess
+    list_workers = unique(ms.list_procs)
+    nprocess = length(list_workers)
+    for ind = 1:nprocess
+        proc = list_workers[ind]
         if proc == 1
-            fill!(dvec_remote[proc], 0)
+            fill!(dvec_remote[ind], 0)
         else
-            dvec_remote[proc] = remotecall(fill!, proc,
-                                           fetch(dvec_remote[proc]), 0)
+            dvec_remote[ind] = remotecall(fill!, proc,
+                                        fetch(dvec_remote[ind]), 0)
         end
     end
     if !accumulat
@@ -88,8 +90,9 @@ function derivatives_θ!{T, N, Ny, Nx, Nθ, M}(
     first_evaluation = trues(nprocess)
     for i = 1:M
         proc = ms.list_procs[i]
-        if first_evaluation[proc]
-            first_evaluation[proc] = false
+        ind = findfirst(proc .== list_workers)
+        if all(first_evaluation[ind])
+            first_evaluation[ind] = false
         end
         if proc == 1
             if dtype == "gradient"
@@ -101,24 +104,24 @@ function derivatives_θ!{T, N, Ny, Nx, Nθ, M}(
             end
         else
             if dtype == "gradient"
-                dvec_remote[proc] = remotecall(
-                    gradient!, proc, fetch(dvec_remote[proc]),
+                dvec_remote[ind] = remotecall(
+                    gradient!, proc, fetch(dvec_remote[ind]),
                     fetch(ms.simulations[i]), variable, loss,
-                    !first_evaluation[proc])
+                    !first_evaluation[ind])
             elseif dtype == "hessian_approx"
-                dvec_remote[proc] = remotecall(
-                    hessian_approx!, proc, fetch(dvec_remote[proc]),
+                dvec_remote[ind] = remotecall(
+                    hessian_approx!, proc, fetch(dvec_remote[ind]),
                     fetch(ms.simulations[i]), p, variable, loss,
-                    !first_evaluation[proc])
+                    !first_evaluation[ind])
             end
         end
     end
     # Put everything togeter
-    for proc = 1:nprocess
-        if proc == 1
-            Base.LinAlg.axpy!(1, dvec_remote[proc], dvec)
+    for ind = 1:nprocess
+        if list_workers[ind] == 1
+            Base.LinAlg.axpy!(1, dvec_remote[ind], dvec)
         else
-            Base.LinAlg.axpy!(1, fetch(dvec_remote[proc]), dvec)
+            Base.LinAlg.axpy!(1, fetch(dvec_remote[ind]), dvec)
         end
     end
     return dvec
@@ -218,29 +221,29 @@ function hessian_approx!{T, N, Ny, Nx, Nθ, M}(
 end
 
 function constr!{T, N, Ny, Nx, Nθ, M}(
-        constr::Vector{Vector{Float64}},
+        c::Vector{Vector{Float64}},
         ms::MultipleShooting{T, N, Ny, Nx, Nθ, M})
     # Get x
     for i = 1:M-1
         proc = ms.list_procs[i]
         if proc == 1
-            constr[i] .= ms.simulations[i].x
+            copy!(c[i], ms.simulations[i].x)
         else
-            constr[i] .= remotecall_fetch(get_x, proc, fetch(ms.simulations[i]))
+            copy!(c[i], remotecall_fetch(get_x, proc, fetch(ms.simulations[i])))
         end
     end
     # subtract x0
     for i = 2:M
         proc = ms.list_procs[i]
         if proc == 1
-            Base.LinAlg.axpy!(-1, ms.simulations[i].x0, constr[i-1])
+            Base.LinAlg.axpy!(-1, ms.simulations[i].x0, c[i-1])
         else
             Base.LinAlg.axpy!(-1,
                 remotecall_fetch(get_x0, proc, fetch(ms.simulations[i])),
-                constr[i-1])
+                c[i-1])
         end
     end
-    return constr
+    return c
 end
 
 function constr_jac!{T, N, Ny, Nx, Nθ, M}(
