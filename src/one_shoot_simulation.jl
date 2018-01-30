@@ -24,10 +24,13 @@ struct OneShootSimulation{T, N, Ny, Nx, Nθ}
     ys_extended
     # Buffer y
     y_buffer
+    # Loss function
+    loss
 end
 
 function OneShootSimulation{T}(f::Function, g::Function,
-                               x0::T, y::Vector{T}, k0::Int, θ)
+                               x0::T, y::Vector{T}, k0::Int, θ,
+                               loss=L2DistLoss())
     # Get sizes
     N = length(y)
     Ny = length(y[1])
@@ -68,7 +71,7 @@ function OneShootSimulation{T}(f::Function, g::Function,
     OneShootSimulation{T, N, Ny, Nx, Nθ}(
         f, g, deepcopy(x0), y, time_span, Jf, Jg, x, dxdθ, dxdx0, x_extended,
         x_buffer, dxdθ_buffer, dxdx0_buffer, x_buffer_extended,
-        ys, dydθ, dydx0, ys_extended, y_buffer)
+        ys, dydθ, dydx0, ys_extended, y_buffer, loss)
 end
 
 function new_simulation!{T, N, Ny, Nx, Nθ}(
@@ -90,18 +93,17 @@ function new_simulation!{T, N, Ny, Nx, Nθ}(
 end
 
 function cost_function{T, N, Ny, Nx, Nθ}(
-        oss::OneShootSimulation{T, N, Ny, Nx, Nθ},
-        loss=L2DistLoss())
+       oss::OneShootSimulation{T, N, Ny, Nx, Nθ})
     cost = 0
     for i = 1:N
-        cost += value(loss, oss.y[i], oss.ys[i], AvgMode.Sum())
+        cost += value(oss.loss, oss.y[i], oss.ys[i], AvgMode.Sum())
     end
     return cost
 end
 
 function gradient!{T, N, Ny, Nx, Nθ}(grad::Vector{Float64},
         oss::OneShootSimulation{T, N, Ny, Nx, Nθ},
-        variable="θ", loss=L2DistLoss(), accumulat=false)
+        variable="θ", accumulat=false)
     if !accumulat
         fill!(grad, 0)
     end
@@ -112,7 +114,7 @@ function gradient!{T, N, Ny, Nx, Nθ}(grad::Vector{Float64},
     end
 
     for i = 1:N
-        deriv!(oss.y_buffer, loss, oss.y[i], oss.ys[i])
+        deriv!(oss.y_buffer, oss.loss, oss.y[i], oss.ys[i])
         Base.LinAlg.BLAS.gemv!('T', 1.0, J[i], oss.y_buffer, 1.0, grad)
     end
     return grad
@@ -120,7 +122,7 @@ end
 
 function hessian_approx!{T, N, Ny, Nx, Nθ}(hessp::Vector{Float64},
         oss::OneShootSimulation{T, N, Ny, Nx, Nθ}, p::Vector{Float64},
-        variable="θ", loss=L2DistLoss(), accumulat=false)
+        variable="θ", accumulat=false)
     if !accumulat
         fill!(hessp, 0)
     end
@@ -132,7 +134,7 @@ function hessian_approx!{T, N, Ny, Nx, Nθ}(hessp::Vector{Float64},
 
     for i = 1:N
         A_mul_B!(oss.y_buffer, J[i], p)
-        oss.y_buffer .*= deriv2.(loss, oss.y[i], oss.ys[i])
+        oss.y_buffer .*= deriv2.(oss.loss, oss.y[i], oss.ys[i])
         Base.LinAlg.BLAS.gemv!('T', 1.0, J[i], oss.y_buffer, 1.0, hessp)
     end
     return hessp

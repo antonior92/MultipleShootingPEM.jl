@@ -9,7 +9,8 @@ end
 function MultipleShooting{T}(f::Function, g::Function,
                              x0_list::Vector{T}, y::Vector{T},
                              k0_list::Vector{Int}, θ,
-                             list_procs::Vector{Int})
+                             list_procs::Vector{Int},
+                             loss=L2DistLoss())
     # Order list of procs
     sort!(list_procs)
     # Get lengths
@@ -27,10 +28,10 @@ function MultipleShooting{T}(f::Function, g::Function,
         proc = list_procs[i]; x0 = x0_list[i]; k0 = k0_list[i];
         yi = y[grid[i]:grid[i+1]-1]; list_N[i] = length(yi);
         if proc == 1
-            simulations[i] = OneShootSimulation(f, g, x0, yi, k0, θ)
+            simulations[i] = OneShootSimulation(f, g, x0, yi, k0, θ, loss)
         else
             simulations[i] = @spawnat(proc,
-                OneShootSimulation(f, g, x0, yi, k0, θ))
+                OneShootSimulation(f, g, x0, yi, k0, θ, loss))
         end
     end
     dvecθ_remote = deepcopy_everywhere(zeros(Nθ), unique(list_procs))
@@ -54,16 +55,15 @@ function new_simulation!{T, N, Ny, Nx, Nθ, M}(
 end
 
 function cost_function{T, N, Ny, Nx, Nθ, M}(
-        ms::MultipleShooting{T, N, Ny, Nx, Nθ, M},
-        loss=L2DistLoss())
+        ms::MultipleShooting{T, N, Ny, Nx, Nθ, M})
     cost = 0
     for i = 1:M
         proc = ms.list_procs[i]
         if proc == 1
-            cost += cost_function(ms.simulations[i], loss)
+            cost += cost_function(ms.simulations[i])
         else
             cost += remotecall_fetch(cost_function, proc,
-                                     fetch(ms.simulations[i]), loss)
+                                     fetch(ms.simulations[i]))
         end
     end
     return cost
@@ -72,7 +72,7 @@ end
 function derivatives_θ!{T, N, Ny, Nx, Nθ, M}(
         dvec::Vector{Float64},
         ms::MultipleShooting{T, N, Ny, Nx, Nθ, M},
-        loss=L2DistLoss(), accumulat=false, dtype="gradient",
+        accumulat=false, dtype="gradient",
         p::Vector{Float64}=Float64[])
     variable="θ"
     # Set initial values to zero if not accumulating
@@ -101,21 +101,21 @@ function derivatives_θ!{T, N, Ny, Nx, Nθ, M}(
         if proc == 1
             if dtype == "gradient"
                 gradient!(ms.dvecθ_remote[proc], ms.simulations[i],
-                          variable, loss, !first_evaluation[proc])
+                          variable, !first_evaluation[proc])
             elseif dtype == "hessian_approx"
                 hessian_aprox!(ms.dvecθ_remote[proc], ms.simulations[i], p,
-                               variable, loss, !first_evaluation[proc])
+                               variable, !first_evaluation[proc])
             end
         else
             if dtype == "gradient"
                 ms.dvecθ_remote[ind] = remotecall(
                     gradient!, proc, fetch(ms.dvecθ_remote[ind]),
-                    fetch(ms.simulations[i]), variable, loss,
+                    fetch(ms.simulations[i]), variable,
                     !first_evaluation[ind])
             elseif dtype == "hessian_approx"
                 ms.dvecθ_remote[ind] = remotecall(
                     hessian_approx!, proc, fetch(ms.dvecθ_remote[ind]),
-                    fetch(ms.simulations[i]), p, variable, loss,
+                    fetch(ms.simulations[i]), p, variable,
                     !first_evaluation[ind])
             end
         end
@@ -135,7 +135,7 @@ end
 function derivatives_x0!{T, N, Ny, Nx, Nθ, M}(
         dvec::Vector{Vector{Float64}},
         ms::MultipleShooting{T, N, Ny, Nx, Nθ, M},
-        loss=L2DistLoss(), accumulat=false, dtype="gradient",
+        accumulat=false, dtype="gradient",
         p::Vector{Float64}=Float64[])
     variable="x0"
     # Set initial values to zero if not accumulating
@@ -150,22 +150,22 @@ function derivatives_x0!{T, N, Ny, Nx, Nθ, M}(
         if proc == 1
             if dtype == "gradient"
                 gradient!(ms.dvecx0_remote[i], ms.simulations[i],
-                          variable, loss, false)
+                          variable, false)
             elseif dtype == "hessian_approx"
                 hessian_approx!(ms.dvecx0_remote[i], ms.simulations[i],
-                                p, variable, loss, false)
+                                p, variable, false)
             end
         else
             if dtype == "gradient"
                 ms.dvecx0_remote[i] = remotecall(
                     gradient!, proc, fetch(ms.dvecx0_remote[i]),
                     fetch(ms.simulations[i]), variable,
-                    loss, false)
+                    false)
             elseif dtype == "hessian_approx"
                 ms.dvecx0_remote[i] = remotecall(
                     hessian_approx!, proc, fetch(ms.dvecx0_remote[i]),
                     fetch(ms.simulations[i]), p, variable,
-                    loss, false)
+                    false)
             end
         end
     end
@@ -199,27 +199,23 @@ function deepcopy_everywhere{T}(instance::T, list_procs)
 end
 
 function gradient!{T, N, Ny, Nx, Nθ, M}(
-        grad,
-        ms::MultipleShooting{T, N, Ny, Nx, Nθ, M},
-        variable="θ", loss=L2DistLoss(), accumulat=false)
+        grad, ms::MultipleShooting{T, N, Ny, Nx, Nθ, M},
+        variable="θ", accumulat=false)
     if variable == "θ"
-        derivatives_θ!(grad, ms, loss, accumulat, "gradient")
+        derivatives_θ!(grad, ms, accumulat, "gradient")
     elseif variable == "x0"
-        derivatives_x0!(grad, ms, loss, accumulat, "gradient")
+        derivatives_x0!(grad, ms, accumulat, "gradient")
     end
 end
 
 
 function hessian_approx!{T, N, Ny, Nx, Nθ, M}(
-        hessp,
-        ms::MultipleShooting{T, N, Ny, Nx, Nθ, M}, p,
-        variable="θ", loss=L2DistLoss(), accumulat=false)
+        hessp, ms::MultipleShooting{T, N, Ny, Nx, Nθ, M}, p,
+        variable="θ", accumulat=false)
     if variable == "θ"
-        derivatives_θ!(hessp, ms, loss,
-                       accumulat, "hessian_approx", p)
+        derivatives_θ!(hessp, ms, accumulat, "hessian_approx", p)
     elseif variable == "x0"
-        derivatives_x0!(hessp, hessp_remote, ms,
-                        loss, accumulat, "hessian_approx", p)
+        derivatives_x0!(hessp, ms, accumulat, "hessian_approx", p)
     end
 end
 
