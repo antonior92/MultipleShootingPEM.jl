@@ -93,8 +93,7 @@
         function wrapper_gradient(θ1)
             ms.new_simulation!(multiple_shoot, x0_list, θ1)
             gradθ = zeros(3)
-            gradθ_remote = ms.deepcopy_everywhere(gradθ, unique(list_procs))
-            ms.gradient!(gradθ, gradθ_remote, multiple_shoot, "θ")
+            ms.gradient!(gradθ, multiple_shoot, "θ")
             return gradθ
         end
 
@@ -123,8 +122,7 @@
             x0_list1 = [[x0] for x0 in x0_expanded]
             ms.new_simulation!(multiple_shoot, x0_list1, θ)
             gradx0 = ms.deepcopy_everywhere(zeros(1), ones(list_procs))
-            gradx0_remote = ms.deepcopy_everywhere(zeros(1), list_procs)
-            ms.gradient!(gradx0, gradx0_remote, multiple_shoot, "x0")
+            ms.gradient!(gradx0, multiple_shoot, "x0")
             gradx0_expanded = [g[1] for g in gradx0]
             return gradx0_expanded
         end
