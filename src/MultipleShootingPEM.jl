@@ -12,7 +12,7 @@ function __init__()
     copy!(scipy_sps, pyimport_conda("scipy.sparse.linalg", "scipy"))
 end
 
-
+include("util.jl")
 include("sensitivity_equations.jl")
 include("space_state_model.jl")
 include("one_shoot_simulation.jl")
