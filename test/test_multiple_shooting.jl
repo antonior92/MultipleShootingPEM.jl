@@ -219,32 +219,3 @@
     end
     rmprocs(pids)
 end
-
-@testset "Test extended vector conversions" begin
-    srand(1)
-    Nθ = 10
-    Nx = 3
-    M = 5
-    θ = randn(Nθ)
-    x0_list = Vector{Vector{Float64}}(M)
-    for i = 1:M
-        x0_list[i] = randn(Nx)
-    end
-    θ_extended = [θ; vcat(x0_list...)]
-    @testset "Test build extended vector" begin
-        θ_extended_buffer = zeros(θ_extended)
-        ms.build_extended_vector!(θ_extended_buffer, θ, x0_list, Nθ, M, Nx)
-        @test θ_extended_buffer ≈ θ_extended
-    end
-
-    @testset "Test read extended vector" begin
-        θ_buffer = zeros(θ)
-        x0_list_buffer = Vector{Vector{Float64}}(M)
-        for i = 1:M
-            x0_list_buffer[i] = zeros(Nx)
-        end
-        ms.read_extended_vector!(θ_buffer, x0_list_buffer, θ_extended, Nθ, M, Nx)
-        @test θ_buffer ≈ θ
-        @test x0_list_buffer ≈ x0_list
-    end
-end

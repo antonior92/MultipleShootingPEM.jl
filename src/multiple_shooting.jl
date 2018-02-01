@@ -255,35 +255,6 @@ function constr_jac!{T, N, Ny, Nx, Nθ, M}(
     return jac
 end
 
-function build_extended_vector!(θ_extended, θ, x0_list, Nθ, M, Nx)
-    k = 1
-    for i = 1:Nθ
-        θ_extended[k] = θ[i]
-        k += 1
-    end
-    for i = 1:M
-        for j = 1:Nx
-            θ_extended[k] = x0_list[i][j]
-            k += 1
-        end
-    end
-    return θ_extended
-end
-
-function read_extended_vector!(θ, x0_list, θ_extended, Nθ, M, Nx)
-    k = 1
-    for i = 1:Nθ
-        θ[i] = θ_extended[k]
-        k += 1
-    end
-    for i = 1:M
-        for j = 1:Nx
-            x0_list[i][j] = θ_extended[k]
-            k += 1
-        end
-    end
-    return θ, x0_list
-end
 
 function deepcopy_everywhere{T}(instance::T, list_procs)
     if all(list_procs .== 1)
