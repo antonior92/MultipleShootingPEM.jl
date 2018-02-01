@@ -103,7 +103,7 @@ function derivatives_θ!{T, N, Ny, Nx, Nθ, M}(
                 gradient!(ms.dvecθ_remote[proc], ms.simulations[i],
                           variable, !first_evaluation[proc])
             elseif dtype == "hessian_approx"
-                hessian_aprox!(ms.dvecθ_remote[proc], ms.simulations[i], p,
+                hessian_approx!(ms.dvecθ_remote[proc], ms.simulations[i], p,
                                variable, !first_evaluation[proc])
             end
         else
@@ -136,7 +136,7 @@ function derivatives_x0!{T, N, Ny, Nx, Nθ, M}(
         dvec::Vector{Vector{Float64}},
         ms::MultipleShooting{T, N, Ny, Nx, Nθ, M},
         accumulat=false, dtype="gradient",
-        p::Vector{Float64}=Float64[])
+        p::Vector{Vector{Float64}}=Vector{Float64}[])
     variable="x0"
     # Set initial values to zero if not accumulating
     if !accumulat
@@ -153,7 +153,7 @@ function derivatives_x0!{T, N, Ny, Nx, Nθ, M}(
                           variable, false)
             elseif dtype == "hessian_approx"
                 hessian_approx!(ms.dvecx0_remote[i], ms.simulations[i],
-                                p, variable, false)
+                                p[i], variable, false)
             end
         else
             if dtype == "gradient"
@@ -164,7 +164,7 @@ function derivatives_x0!{T, N, Ny, Nx, Nθ, M}(
             elseif dtype == "hessian_approx"
                 ms.dvecx0_remote[i] = remotecall(
                     hessian_approx!, proc, fetch(ms.dvecx0_remote[i]),
-                    fetch(ms.simulations[i]), p, variable,
+                    fetch(ms.simulations[i]), p[i], variable,
                     false)
             end
         end

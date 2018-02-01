@@ -98,14 +98,21 @@ end
     end
 end
 
-#@testset "Test Hessian" begin
-θ = [3.21, 3.2, 1.00]
-x0_ext = collect(linspace(0.2, 0.3, 10))
-θ_ext = [θ; x0_ext]
-hess = ms.hessian(opt, θ_ext)
-p = ones(13)
+@testset "Test Hessian" begin
+    θ = [3.21, 3.2, 1.00]
+    x0_ext = collect(linspace(0.2, 0.3, 10))
+    θ_ext = [θ; x0_ext]
+    hess = ms.hessian(opt, θ_ext)
+    p = ones(13)
+    @test length(hess["dot"](p)) == 13
+end
 
-#end
+@testset "Test constraints" begin
+    θ_ext = [3.78; 3.78; 1.00; vcat(x0_list...)]
+    @test ms.constraint(opt, θ_ext) ≈ zeros(9)
+    θ_ext = [3.78; 3.78; 2.00; vcat(x0_list...)]
+    @test ms.constraint(opt, θ_ext) ≈ zeros(9)
+end
 rmprocs(pids)
 
 @testset "Test extended vector conversions" begin

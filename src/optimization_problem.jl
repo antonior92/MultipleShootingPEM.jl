@@ -8,12 +8,15 @@ mutable struct OptimizationProblem{N, Ny, Nx, Nθ, M}
     grad::Vector{Float64}
     gradθ_aux::Vector{Float64}
     gradx0_aux::Vector{Vector{Float64}}
+    # Multiplicative vector p
+    p_θ::Vector{Float64}
+    p_x0::Vector{Vector{Float64}}
     # Hessian
     hessp::Vector{Float64}
     hesspθ_aux::Vector{Float64}
     hesspx0_aux::Vector{Vector{Float64}}
     # Constraint
-    constr::Vector{Float64}
+    constr::Vector{Vector{Float64}}
 end
 
 function OptimizationProblem(f::Function, g::Function,
@@ -44,6 +47,12 @@ function OptimizationProblem(f::Function, g::Function,
    for i = 1:M
        gradx0_aux[i] = zeros(Nx)
    end
+   # Multiplicative_vector_p
+   p_θ = zeros(Nθ)
+   p_x0 = Vector{Vector{Float64}}(M)
+   for i = 1:M
+       p_x0[i] = zeros(Nx)
+   end
    # Hessian
    hessp = zeros(Nθ + M*Nx)
    hesspθ_aux = zeros(Nθ)
@@ -52,10 +61,13 @@ function OptimizationProblem(f::Function, g::Function,
        hesspx0_aux[i] = zeros(Nx)
    end
    # Constraint
-   constr = zeros((M-1)*Nx)
+   constr = Vector{Vector{Float64}}((M-1)*Nx)
+   for i = 1:M-1
+       constr[i] = zeros(Nx)
+   end
    # Call constructor
    OptimizationProblem{N, Ny, Nx, Nθ, M}(
-      ms, θ_ext, θ_aux, x0_list_aux, grad, gradθ_aux, gradx0_aux,
+      ms, θ_ext, θ_aux, x0_list_aux, grad, gradθ_aux, gradx0_aux, p_θ, p_x0,
       hessp, hesspθ_aux, hesspx0_aux, constr)
 end
 
@@ -81,17 +93,18 @@ function hessian{N, Ny, Nx, Nθ, M}(
         θ_ext::Vector{Float64})
     update_simulation!(opt, θ_ext)
     function hessp(p)
-        hessian_approx!(opt.hesspθ_aux, opt.ms, "θ")
-        hessian_approx!(opt.hesspx0_aux, opt.ms, "x0")
-        return build_extended_vector!(opt.hessp, opt.hesspθ, opt.hesspx0,
-                                     Nθ, M, Nx)
+        read_extended_vector!(opt.p_θ, opt.p_x0, p, Nθ, M, Nx)
+        hessian_approx!(opt.hesspθ_aux, opt.ms, opt.p_θ, "θ")
+        hessian_approx!(opt.hesspx0_aux, opt.ms, opt.p_x0, "x0")
+        return build_extended_vector!(opt.hessp, opt.hesspθ_aux, opt.hesspx0_aux,
+                                      Nθ, M, Nx)
     end
-    return scipy_sps[:LinearOperator]((Nθ+Nx*M, Nθ+Nx*M), matvec=hessp)
+    return scipy_sps["LinearOperator"]((Nθ+M*Nx, Nθ+M*Nx), matvec=hessp)
 end
 
 function constraint{N, Ny, Nx, Nθ, M}(
         opt::OptimizationProblem{N, Ny, Nx, Nθ, M},
-        θ_extended::Vector{Float64})
+        θ_ext::Vector{Float64})
     update_simulation!(opt, θ_ext)
     return constr!(opt.constr, opt.ms)
 end
