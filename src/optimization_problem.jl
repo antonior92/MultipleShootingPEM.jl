@@ -16,7 +16,8 @@ mutable struct OptimizationProblem{N, Ny, Nx, Nθ, M}
     hesspθ_aux::Vector{Float64}
     hesspx0_aux::Vector{Vector{Float64}}
     # Constraint
-    constr::Vector{Vector{Float64}}
+    constr::Vector{Float64}
+    constr_aux::Vector{Vector{Float64}}
     # Jacobian
     jacobian::SparseMatrixCOO{Float64,Int64}
     jacobian_θ::Vector{Matrix{Float64}}
@@ -65,9 +66,10 @@ function OptimizationProblem(f::Function, g::Function,
        hesspx0_aux[i] = zeros(Nx)
    end
    # Constraint
-   constr = Vector{Vector{Float64}}(M-1)
+   constr = Vector{Float64}((M-1)*Nx)
+   constr_aux = Vector{Vector{Float64}}(M-1)
    for i = 1:M-1
-       constr[i] = zeros(Nx)
+       constr_aux[i] = zeros(Nx)
    end
    # Jacobian
    jacobian_θ = Vector{Matrix{Float64}}(M-1)
@@ -80,14 +82,15 @@ function OptimizationProblem(f::Function, g::Function,
    end
    i, j = jacobian_indices(Nθ, M, Nx)
    nnz = length(i)
-   v = Vector{Flaot64}(nnz)
+   v = Vector{Float64}(nnz)
    jacobian = SparseMatrixCOO{Float64,Int64}(Nx*(M-1), Nθ + M*Nx, i, j, v)
    jacobian_from_matrices!(jacobian, jacobian_θ, jacobian_x0,
                            Nθ, M, Nx; reset_constants=true)
    # Call constructor
    OptimizationProblem{N, Ny, Nx, Nθ, M}(
       ms, θ_ext, θ_aux, x0_list_aux, grad, gradθ_aux, gradx0_aux, p_θ, p_x0,
-      hessp, hesspθ_aux, hesspx0_aux, constr, jacobian, jacobian_θ, jacobian_x0)
+      hessp, hesspθ_aux, hesspx0_aux, constr, constr_aux, jacobian,
+      jacobian_θ, jacobian_x0)
 end
 
 function cost_function{N, Ny, Nx, Nθ, M}(
@@ -125,7 +128,15 @@ function constraint{N, Ny, Nx, Nθ, M}(
         opt::OptimizationProblem{N, Ny, Nx, Nθ, M},
         θ_ext::Vector{Float64})
     update_simulation!(opt, θ_ext)
-    return constr!(opt.constr, opt.ms)
+    constr!(opt.constr_aux, opt.ms)
+    k = 1
+    for i = 1:M-1
+        for j = 1:Nx
+            opt.constr[k] = opt.constr_aux[i][j]
+            k +=1
+        end
+    end
+    return opt.constr
 end
 
 
@@ -191,9 +202,9 @@ function jacobian_indices(Nθ, M, Nx)
     # Counter
     k = 1
     # Include elements from ``jacobian_θ`` matrices
-    for rows_offset = 0:Nx:(M-1)*Nx
-        for rows = 1:Nx
-            for cols = 1:Nθ
+    for rows_offset = 0:Nx:(M-2)*Nx
+        for cols = 1:Nθ
+            for rows = 1:Nx
                 i[k] = rows + rows_offset
                 j[k] = cols
                 k += 1
@@ -202,9 +213,9 @@ function jacobian_indices(Nθ, M, Nx)
     end
     # Include elements from ``jacobian_x0`` matrices
     cols_offset = Nθ
-    for offset = 0:Nx:(M-1)*Nx
-        for rows = 1:Nx
-            for cols = 1:Nx
+    for offset = 0:Nx:(M-2)*Nx
+        for cols = 1:Nx
+            for rows = 1:Nx
                 i[k] = rows + offset
                 j[k] = cols + offset + cols_offset
                 k += 1
@@ -212,8 +223,8 @@ function jacobian_indices(Nθ, M, Nx)
         end
     end
     # Include indices relative to -eye(Nx) matrices
-    cols_offset = Nθ
-    for offset = Nx:Nx:M*Nx
+    cols_offset = Nθ+Nx
+    for offset = 0:Nx:(M-2)*Nx
         for rows = 1:Nx
             i[k] = rows + offset
             j[k] = rows + offset + cols_offset
@@ -231,8 +242,8 @@ function jacobian_from_matrices!(jacobian::SparseMatrixCOO,
     k = 1
     # Include elements from ``jacobian_θ`` matrices
     for matrix_number = 1:(M-1)
-        for rows = 1:Nx
-            for cols = 1:Nθ
+        for cols = 1:Nθ
+            for rows = 1:Nx
                 jacobian.v[k] = jacobian_θ[matrix_number][rows, cols]
                 k += 1
             end
@@ -240,8 +251,8 @@ function jacobian_from_matrices!(jacobian::SparseMatrixCOO,
     end
     # Include elements from ``jacobian_x0`` matrices
     for matrix_number = 1:(M-1)
-        for rows = 1:Nx
-            for cols = 1:Nx
+        for cols = 1:Nx
+            for rows = 1:Nx
                 jacobian.v[k] = jacobian_x0[matrix_number][rows, cols]
                 k += 1
             end
