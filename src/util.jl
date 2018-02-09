@@ -21,6 +21,9 @@ struct LinearOperator
     matvec::Function
 end
 
-function Base.dot(op::LinearOperator, x::Vector{Float64})
+function Base.dot(op::LinearOperator, x::Vector)
     return op.matvec(x)
 end
+
+to_python(op::LinearOperator) = scipy_spslin["LinearOperator"]((op.m, op.n),
+                                                               matvec=op.matvec)
