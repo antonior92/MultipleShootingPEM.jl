@@ -106,7 +106,7 @@
         θ_ext = [θ; x0_ext]
         hess = ms.hessian(opt, θ_ext)
         p = ones(13)
-        @test length(hess["dot"](p)) == 13
+        @test length(dot(hess, p)) == 13
     end
 
     @testset "Test constraints" begin
