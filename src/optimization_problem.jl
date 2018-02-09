@@ -121,7 +121,7 @@ function hessian{N, Ny, Nx, Nθ, M}(
         return build_extended_vector!(opt.hessp, opt.hesspθ_aux, opt.hesspx0_aux,
                                       Nθ, M, Nx)
     end
-    return LinearOperator((Nθ+M*Nx, Nθ+M*Nx), hessp)
+    return LinearOperator(Nθ+M*Nx, Nθ+M*Nx, hessp)
 end
 
 function constraint{N, Ny, Nx, Nθ, M}(

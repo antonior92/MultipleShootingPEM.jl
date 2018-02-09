@@ -10,7 +10,8 @@ end
 
 # Linear Operator
 struct LinearOperator
-    shape::Tuple{Int, Int}
+    m::Int
+    n::Int
     matvec::Function
 end
 
