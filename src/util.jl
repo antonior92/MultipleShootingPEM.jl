@@ -7,6 +7,12 @@ struct SparseMatrixCOO{Tv, Ti}
     v::Vector{Tv}
 end
 
+to_sparse_csc(coo::SparseMatrixCOO) = sparse(coo.i, coo.j, coo.v, coo.m, coo.n)
+
+to_full(coo::SparseMatrixCOO) = full(to_sparse_csc(coo))
+
+to_python(coo::SparseMatrixCOO) = scipy_sps["coo_matrix"](
+    (coo.v, (coo.i-1, coo.j-1)), shape=(coo.m, coo.n))
 
 # Linear Operator
 struct LinearOperator
