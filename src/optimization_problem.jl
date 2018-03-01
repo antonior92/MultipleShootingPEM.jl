@@ -45,6 +45,7 @@ function OptimizationProblem(f::Function, g::Function,
    for i = 1:M
        x0_list_aux[i] = zeros(Nx)
    end
+   build_extended_vector!(θ_ext, θ, x0_list, Nθ, M, Nx)
    # Gradient
    grad = zeros(Nθ + M*Nx)
    gradθ_aux = zeros(Nθ)
@@ -268,4 +269,28 @@ function jacobian_from_matrices!(jacobian::SparseMatrixCOO,
         end
     end
     return jacobian
+end
+
+function solve{N, Ny, Nx, Nθ, M}(
+        opt::OptimizationProblem{N, Ny, Nx, Nθ, M};
+        callback=(x, state)->false, options=Dict())
+    fun(θ_ext) = copy(cost_function(opt, θ_ext))
+    grad(θ_ext) = copy(gradient(opt, θ_ext))
+    hess(θ_ext) = to_python(hessian(opt, θ_ext))
+    constr(θ_ext) = copy(constraint(opt, θ_ext))
+    jac(θ_ext) = to_python(jacobian(opt, θ_ext))
+    nlconstr = scipy_opt["NonlinearConstraint"](constr, 0, 0,
+                                                jac, "2-point")
+    θ_ext0 = copy(opt.θ_ext)
+
+    if M >= 2
+        scipy_opt["minimize"](fun, θ_ext0, jac=grad, hess=hess,
+                              options=options, callback=callback,
+                              method="trust-constr",
+                              constraints=nlconstr)
+    else
+        scipy_opt["minimize"](fun, θ_ext0, jac=grad, hess=hess,
+                              options=options, callback=callback,
+                              method="trust-constr")
+    end
 end

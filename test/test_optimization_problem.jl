@@ -215,3 +215,67 @@ end
                        1 1 1 0 0  1  1 -1  0;
                        1 1 1 0 0  1  1  0 -1]
 end
+
+@testset "Test single shooting" begin
+    # From example 2.11, "Linear System Theory and design" Chen
+    # With not very realistic values
+    # Define linear function
+    function linear_f(x_next, x, k)
+        A = [-0.005    0   -0.1;
+             0         0    0.1;
+             1.0      -1.0    0]
+        x_next .=  A*x
+        return
+    end
+    # g(x) = x
+    function linear_g(y, x, k)
+      y .= dot([1, -1, 0], x)
+      return
+    end
+    # Define initial conditions
+    x0 = [5, 0.6, 0.5]
+    # Initialize buffer
+    N = 1000
+    y = Vector{Vector{Float64}}(N)
+    for i = 1:length(y)
+       y[i] = zeros(1)
+    end
+    # Simulate
+    x_final = ms.simulate_space_state!(y, linear_f, linear_g,
+                                       x0, (1, N))
+
+    # Define initial values
+    k0_list = [1]
+    list_procs = [1]
+    x0_list = [[5, 0.6, 0.5]]
+    θ0 = [-0.005, 0.0999, 0.09, 1.0]
+
+    # Define polynomial model
+    # f(x) = θ1*x - θ2*x^2
+    function f(y, dx, dθ, x, k, θ)
+        A = [θ[1]  0 -θ[2];
+             0     0  θ[3];
+             θ[4] -θ[4]  0]
+         y .= A*x
+         dx .= A
+         dθ .= [x[1] -x[3]    0      0;
+                0      0      x[3]   0;
+                0      0       0    x[1]-x[2]]
+         return
+    end
+    # g(x) = x
+    function g(y, dx, dθ, x, k, θ)
+      y .= dot([1, -1, 0], x)
+      dx .= [1 -1 0]
+      dθ .=  0
+      return
+    end
+
+    opt = ms.OptimizationProblem(f, g, x0_list, y, k0_list, θ0, list_procs)
+
+    res = ms.solve(opt, options=Dict("gtol" => 1e-12,
+                                     "xtol" => 1e-10))
+
+
+    @test(res["x"] ≈ [-0.005, 0.1, 0.1, 1.0, 5, 0.6, 0.5], atol=1e-3)
+end
