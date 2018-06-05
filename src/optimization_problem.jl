@@ -273,7 +273,8 @@ end
 
 function solve{N, Ny, Nx, Nθ, M}(
         opt::OptimizationProblem{N, Ny, Nx, Nθ, M};
-        callback=(x, state)->false, options=Dict())
+        callback=(x, state)->false, options=Dict(),
+        kwargs...)
     fun(θ_ext) = copy(cost_function(opt, θ_ext))
     grad(θ_ext) = copy(gradient(opt, θ_ext))
     hess(θ_ext) = to_python(hessian(opt, θ_ext))
@@ -287,10 +288,12 @@ function solve{N, Ny, Nx, Nθ, M}(
         scipy_opt["minimize"](fun, θ_ext0, jac=grad, hess=hess,
                               options=options, callback=callback,
                               method="trust-constr",
-                              constraints=nlconstr)
+                              constraints=nlconstr;
+                              kwargs...)
     else
         scipy_opt["minimize"](fun, θ_ext0, jac=grad, hess=hess,
                               options=options, callback=callback,
-                              method="trust-constr")
+                              method="trust-constr";
+                              kwargs...)
     end
 end

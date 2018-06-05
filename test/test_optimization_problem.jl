@@ -413,9 +413,9 @@ end
 
     opt = ms.OptimizationProblem(f, g, x0_list, y, k0_list, θ0, list_procs)
 
-    @time res = ms.solve(opt, options=Dict("gtol" => 1e-8,
-                                           "xtol" => 1e-8,
-                                           "maxiter" => 200))
+    res = ms.solve(opt, options=Dict("gtol" => 1e-8,
+                                     "xtol" => 1e-8,
+                                     "maxiter" => 200))
     θ_opt = [-0.005, 0.1, 0.1, 1.0]
     final_error = norm((res["x"][1:4] - θ_opt)./θ_opt,  Inf)
     initial_error = norm((θ0 - θ_opt)./θ_opt, Inf)
