@@ -1,7 +1,7 @@
 import MultipleShootingPEM
 ms = MultipleShootingPEM
 using Plots
-pgfplots()
+pyplot()
 using LaTeXStrings
 
 # Generate Data
@@ -107,7 +107,7 @@ for θp = 3.2:0.05:3.9
     res = ms.solve(opt, options=Dict("gtol" => 1e-10,
                                      "xtol" => 1e-10,
                                      "maxiter" => 2000,
-                                     "initial_trust_radius" => 0.1))
+                                     "initial_tr_radius" => 0.1))
     θ_est = res["x"][1]
     cost_est = res["fun"]
 
@@ -123,7 +123,7 @@ plot!(θ_range, cost_matrix, color=:blue, linealpha=0.2)
 scatter!(θ_list, cost_list, marker=:c, color=:green, markersize=5)
 vline!([θ_opt], ls=:dot, color=:red)
 
-savefig("ratio10_ms_logistic.tex")
+#savefig("ratio10_ms_logistic.tex")
 
 # Evaluate solver performance
 niter_list = [res["niter"] for res in res_list]

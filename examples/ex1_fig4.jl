@@ -1,7 +1,7 @@
 import MultipleShootingPEM
 ms = MultipleShootingPEM
 using Plots
-pgfplots()
+pyplot()
 using LaTeXStrings
 
 # Generate Data
@@ -121,7 +121,7 @@ plot!(θ_range, cost_matrix, color=:blue, linealpha=0.2)
 scatter!(θ_list, cost_list, marker=:c, color=:green, markersize=5)
 vline!([θ_opt], ls=:dot, color=:red)
 
-savefig("ratio2_ms_logistic.tex")
+#savefig("ratio2_ms_logistic.tex")
 
 # Evaluate solver performance
 niter_list = [res["niter"] for res in res_list]

@@ -278,7 +278,7 @@ end
     final_error = norm((res["x"] - θext_opt)./θext_opt,  Inf)
     initial_error = norm(([θ0; x0_list[1]] - θext_opt)./θext_opt, Inf)
 
-    @test final_error / initial_error < 0.006
+    @test final_error / initial_error < 0.01
 end
 
 @testset "Test multiple shooting" begin
