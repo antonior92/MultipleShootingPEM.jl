@@ -50,9 +50,10 @@ end
     opt = ms.OptimizationProblem(f, g, x0_list, yi_aux, k0_list, θ0,
                                              list_procs)
 
-    res = ms.solve(opt, options=Dict("gtol" => 1e-10,
-                                     "xtol" => 1e-10,
-                                     "maxiter" => 1000))
+    res = ms.solve(opt, options=Dict("gtol" => 1e-12,
+                                     "xtol" => 1e-12,
+                                     "maxiter" => 3000,
+                                     "initial_tr_radis" => 1))
     delete!(res, "jac")
     JLD2.@save "solutions/sol"*string(seed)*"_"*string(shoot_len)*".jld2" res
 end
@@ -70,4 +71,4 @@ if ~Base.Filesystem.isdir("solutions")
     Base.Filesystem.mkdir("solutions")
 end
 
-pmap(compute_solutions, 1:50)
+pmap(compute_solutions, 1:100)
