@@ -53,7 +53,7 @@ end
     res = ms.solve(opt, options=Dict("gtol" => 1e-12,
                                      "xtol" => 1e-12,
                                      "maxiter" => 3000,
-                                     "initial_tr_radis" => 1))
+                                     "initial_tr_radius" => 1))
     delete!(res, "jac")
     JLD2.@save "solutions/sol"*string(seed)*"_"*string(shoot_len)*".jld2" res
 end
