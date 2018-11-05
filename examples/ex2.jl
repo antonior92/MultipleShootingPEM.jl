@@ -3,7 +3,7 @@ ms = MultipleShootingPEM
 import ParallelTrainingNN
 nn = ParallelTrainingNN
 using Plots
-pgfplots()
+pyplot()
 using LaTeXStrings
 using CSV
 
@@ -58,7 +58,7 @@ for (i, M) in enumerate(M_list)
     res = ms.solve(opt, options=Dict("gtol" => 1e-10,
                                      "xtol" => 1e-10,
                                      "maxiter" => 2000,
-                                     "initial_trust_radius" => 1))
+                                     "initial_tr_radius" => 1))
     res_list[i] = res
     actual_M_list[i] = length(k0_list)
     θ_est[i] = res["x"][1:41]
@@ -67,7 +67,7 @@ end
 freerun = nn.free_run_simulation(mdl, yterms, uterms, validation_data);
 nn.plot_output(validation_data, freerun, θ_est,
                label=["M=1,", "M=5,", "M=20,", "M=60,", "M=100,"])
-savefig("pilot_plant_ms.tex")
+# savefig("pilot_plant_ms.tex")
 
 
 # Compute validation error

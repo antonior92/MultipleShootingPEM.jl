@@ -3,15 +3,15 @@ addprocs(8)
 @everywhere ms = MultipleShootingPEM
 @everywhere import ParallelTrainingNN
 @everywhere nn = ParallelTrainingNN
-@everywhere using Plots
-pgfplots()
-using LaTeXStrings
 @everywhere using CSV
+@everywhere using JLD2
 
 # Import data
 @everywhere df = CSV.read("examples/processed_data/training_set.csv");
 @everywhere ti, ui, yi = Vector(df[:time]), Vector(df[:input]), Vector(df[:output]);
 @everywhere Ts = (ti[2] - ti[1])/3600;
+@everywhere Ni = length(yi)
+
 @everywhere identification_data = nn.IdData(yi, ui, Ts);
 @everywhere df = CSV.read("examples/processed_data/test_set.csv");
 @everywhere tv, uv, yv = Vector(df[:time]), Vector(df[:input]), Vector(df[:output]);
@@ -19,7 +19,7 @@ using LaTeXStrings
 @everywhere validation_data = nn.IdData(yv, uv, Ts);
 
 # Define neural network model
-@everywhere  mdl = nn.FeedforwardNetwork(2, 1, [10])
+@everywhere mdl = nn.FeedforwardNetwork(2, 1, [10])
 @everywhere yterms = [[1]];
 @everywhere uterms = [[1]];
 @everywhere mdl = nn.learn_normalization(mdl, yterms, uterms, identification_data);
@@ -38,33 +38,36 @@ end
     return
 end
 
-# Multiple shooting error estimation
-@everywhere function compute_results(seed)
-    print(seed)
-    M_list = [1, 60]
-    actual_M_list = zeros(M_list)
-    res_list = Vector(length(M_list))
-    for (i, M) in enumerate(M_list)
-        print(M)
-        srand(seed)
-        k0 = 1
-        N = length(yi)
-        k0_list = collect(k0:Int(floor(N//M)):k0+N-1)
-        list_procs = ones(Int, length(k0_list))
+@everywhere function compute_solution(seed, shoot_len)
+    println("shoot_len = " * string(shoot_len))
+    srand(seed)
+    k0 = 1
+    k0_list = collect(k0:shoot_len:k0+Ni-1)
+    list_procs = ones(Int, length(k0_list))
 
-        yi_aux = [[element] for element in yi]
-        x0_list = yi_aux[k0_list]
-        opt = ms.OptimizationProblem(f, g, x0_list, yi_aux, k0_list, θ0,
-                                                 list_procs)
+    yi_aux = [[element] for element in yi]
+    x0_list = yi_aux[k0_list]
+    opt = ms.OptimizationProblem(f, g, x0_list, yi_aux, k0_list, θ0,
+                                             list_procs)
 
-        res = ms.solve(opt, options=Dict("gtol" => 1e-10,
-                                         "xtol" => 1e-10,
-                                         "maxiter" => 2000,
-                                         "initial_trust_radius" => 1))
-        res_list[i] = res
-        actual_M_list[i] = length(k0_list)
-    end
-    return res_list
+    res = ms.solve(opt, options=Dict("gtol" => 1e-10,
+                                     "xtol" => 1e-10,
+                                     "maxiter" => 1000))
+    delete!(res, "jac")
+    JLD2.@save "solutions/sol"*string(seed)*"_"*string(shoot_len)*".jld2" res
 end
 
-ansert = pmap(compute_results, 1:15)
+# Multiple shooting error estimation
+@everywhere function compute_solutions(seed)
+    println("seed = " * string(seed))
+    shoot_len_list = [Ni, 50, 20, 10, 5, 3]
+    for shoot_len in shoot_len_list
+        compute_solution(seed, shoot_len)
+    end
+end
+
+if ~Base.Filesystem.isdir("solutions")
+    Base.Filesystem.mkdir("solutions")
+end
+
+pmap(compute_solutions, 1:50)
