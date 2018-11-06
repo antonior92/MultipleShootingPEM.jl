@@ -23,7 +23,6 @@ addprocs(8)
 @everywhere yterms = [[1]];
 @everywhere uterms = [[1]];
 @everywhere mdl = nn.learn_normalization(mdl, yterms, uterms, identification_data);
-@everywhere θ0 = nn.initial_guess(mdl)
 @everywhere dx_aux = Matrix{Float64}(1, 2)
 @everywhere function f(y, dx, dθ, x, k, θ)
     x_aux = [x[1], ui[k]]
@@ -41,14 +40,14 @@ end
 @everywhere function compute_solution(seed, shoot_len)
     println("shoot_len = " * string(shoot_len))
     srand(seed)
+    θ0 = nn.initial_guess(mdl)
     k0 = 1
     k0_list = collect(k0:shoot_len:k0+Ni-1)
     list_procs = ones(Int, length(k0_list))
-
     yi_aux = [[element] for element in yi]
     x0_list = yi_aux[k0_list]
     opt = ms.OptimizationProblem(f, g, x0_list, yi_aux, k0_list, θ0,
-                                             list_procs)
+                                list_procs)
 
     res = ms.solve(opt, options=Dict("gtol" => 1e-12,
                                      "xtol" => 1e-12,

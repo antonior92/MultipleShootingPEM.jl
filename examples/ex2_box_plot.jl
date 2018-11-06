@@ -3,6 +3,7 @@ import ParallelTrainingNN
 using Plots
 using StatPlots
 import CSV
+using DataFrames
 plotlyjs()
 nn = ParallelTrainingNN
 
@@ -26,15 +27,16 @@ freerun = nn.free_run_simulation(mdl, yterms, uterms, validation_data);
 ys = nn.get_slice(freerun, validation_data.y);
 
 # Compute MSE
-seeds = 1:50
+seeds = 1:41
 shoot_len_list = [711, 50, 20, 10, 5, 3]
 MSE = Matrix{Float64}(length(seeds), length(shoot_len_list))
 for (i, s) in enumerate(seeds)
     for (j, shoot_len) in enumerate(shoot_len_list)
         file_name = "solutions/sol"*string(s)*"_"*string(shoot_len)*".jld2"
+        println(file_name)
         res = load(file_name, "res")
         θ_est = res["x"][1:41]
-        MSE[i, j] =  mean((ys - nn.predict(freerun, θ_est)).^2 )
+        MSE[i, j] = res["x"][1] #mean((ys - nn.predict(freerun, θ_est)).^2 )
     end
 end
 
@@ -42,13 +44,23 @@ end
 p = plot()
 df = CSV.read("examples/MSE_parallel_considered_harmfull.csv")
 violin!(p, ["SP"], [df[:series_parallel]])
-violin!(p, ["P"], [df[:parallel]])
+violin!(p, ["P"], [df[:parallel]],  yscale=:log10)
 violin!(p, ["N"], [MSE[:, 1]],  yscale=:log10)
-violin!(p, ["50"], [MSE[:, 2]])
-violin!(p, ["20"], [MSE[:, 3]])
-violin!(p, ["10"], [MSE[:, 4]])
-violin!(p, ["5"], [MSE[:, 5]])
-violin!(p, ["3"], [MSE[:, 6]])
+violin!(p, ["50"], [MSE[:, 2]],  yscale=:log10)
+violin!(p, ["20"], [MSE[:, 3]],  yscale=:log10)
+violin!(p, ["10"], [MSE[:, 4]],  yscale=:log10)
+violin!(p, ["5"], [MSE[:, 5]],  yscale=:log10)
+violin!(p, ["3"], [MSE[:, 6]],  yscale=:log10)
 # MSE = 1489.5 for ARX model (look at the matlab script)
 x = 0.-0.3:1:12
 plot!(p, x, 1489.5*ones(length(x)), color=:black, lw=2, s=:dash)
+
+x =1:41
+plot(x, sort(df[:series_parallel][1:41]), label= "SP" , yscale=:log10)
+plot!(x, sort(df[:parallel][1:41]), label= "P" , yscale=:log10)
+plot!(x, sort(MSE[:, 1]), label= "N" , yscale=:log10)
+plot!(x, sort(MSE[:, 2]), label= "50" , yscale=:log10)
+plot!(x, sort(MSE[:, 3]), label= "20" , yscale=:log10)
+plot!(x, sort(MSE[:, 4]), label= "10" , yscale=:log10)
+plot!(x, sort(MSE[:, 5]), label= "5" , yscale=:log10)
+plot!(x, sort(MSE[:, 6]), label= "3" , yscale=:log10)
