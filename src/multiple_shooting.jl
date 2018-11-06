@@ -1,18 +1,12 @@
 struct MultipleShooting{T, N, Ny, Nx, Nθ, M}
     simulations
-    list_procs
     list_N
-    dvecθ_remote
-    dvecx0_remote
 end
 
 function MultipleShooting{T}(f::Function, g::Function,
                              x0_list::Vector{T}, y::Vector{T},
                              k0_list::Vector{Int}, θ,
-                             list_procs::Vector{Int},
                              loss=L2DistLoss())
-    # Order list of procs
-    sort!(list_procs)
     # Get lengths
     M = length(x0_list)
     N = length(y)
@@ -25,31 +19,19 @@ function MultipleShooting{T}(f::Function, g::Function,
     list_N = Vector{Int}(M)
     simulations = Vector{Union{Future,OneShootSimulation}}(M)
     for i =1:M
-        proc = list_procs[i]; x0 = x0_list[i]; k0 = k0_list[i];
+        x0 = x0_list[i]; k0 = k0_list[i];
         yi = y[grid[i]:grid[i+1]-1]; list_N[i] = length(yi);
-        if proc == 1
-            simulations[i] = OneShootSimulation(f, g, x0, yi, k0, θ, loss)
-        else
-            simulations[i] = @spawnat(proc,
-                OneShootSimulation(f, g, x0, yi, k0, θ, loss))
-        end
+        simulations[i] = OneShootSimulation(f, g, x0, yi, k0, θ, loss)
+
     end
-    dvecθ_remote = deepcopy_everywhere(zeros(Nθ), unique(list_procs))
-    dvecx0_remote = deepcopy_everywhere(zeros(Nx), list_procs)
-    MultipleShooting{T, N, Ny, Nx, Nθ, M}(simulations,
-        sort(list_procs), list_N, dvecθ_remote, dvecx0_remote)
+    MultipleShooting{T, N, Ny, Nx, Nθ, M}(simulations, list_N)
 end
 
 function new_simulation!{T, N, Ny, Nx, Nθ, M}(
         ms::MultipleShooting{T, N, Ny, Nx, Nθ, M}, x0_list::Vector{T}, θ)
     for i = 1:M
-        proc = ms.list_procs[i]; x0 = x0_list[i]
-        if proc == 1
-            ms.simulations[i] = new_simulation!(ms.simulations[i], x0, θ)
-        else
-            ms.simulations[i] = remotecall(new_simulation!, proc,
-                fetch(ms.simulations[i]), x0, θ)
-        end
+        x0 = x0_list[i]
+        ms.simulations[i] = new_simulation!(ms.simulations[i], x0, θ)
     end
     return ms
 end
@@ -58,13 +40,7 @@ function cost_function{T, N, Ny, Nx, Nθ, M}(
         ms::MultipleShooting{T, N, Ny, Nx, Nθ, M})
     cost = 0
     for i = 1:M
-        proc = ms.list_procs[i]
-        if proc == 1
-            cost += cost_function(ms.simulations[i])
-        else
-            cost += remotecall_fetch(cost_function, proc,
-                                     fetch(ms.simulations[i]))
-        end
+        cost += cost_function(ms.simulations[i])
     end
     return cost
 end
@@ -76,56 +52,17 @@ function derivatives_θ!{T, N, Ny, Nx, Nθ, M}(
         p::Vector{Float64}=Float64[])
     variable="θ"
     # Set initial values to zero if not accumulating
-    list_workers = unique(ms.list_procs)
-    nprocess = length(list_workers)
-    for ind = 1:nprocess
-        proc = list_workers[ind]
-        if proc == 1
-            fill!(ms.dvecθ_remote[ind], 0)
-        else
-            ms.dvecθ_remote[ind] = remotecall(fill!, proc,
-                                        fetch(ms.dvecθ_remote[ind]), 0)
-        end
-    end
     if !accumulat
         fill!(dvec, 0.0)
     end
     # Make all the computations on remote instances
-    first_evaluation = trues(nprocess)
     for i = 1:M
-        proc = ms.list_procs[i]
-        ind = findfirst(proc .== list_workers)
-        if all(first_evaluation[ind])
-            first_evaluation[ind] = false
-        end
-        if proc == 1
-            if dtype == "gradient"
-                gradient!(ms.dvecθ_remote[proc], ms.simulations[i],
-                          variable, !first_evaluation[proc])
-            elseif dtype == "hessian_approx"
-                hessian_approx!(ms.dvecθ_remote[proc], ms.simulations[i], p,
-                               variable, !first_evaluation[proc])
-            end
-        else
-            if dtype == "gradient"
-                ms.dvecθ_remote[ind] = remotecall(
-                    gradient!, proc, fetch(ms.dvecθ_remote[ind]),
-                    fetch(ms.simulations[i]), variable,
-                    !first_evaluation[ind])
-            elseif dtype == "hessian_approx"
-                ms.dvecθ_remote[ind] = remotecall(
-                    hessian_approx!, proc, fetch(ms.dvecθ_remote[ind]),
-                    fetch(ms.simulations[i]), p, variable,
-                    !first_evaluation[ind])
-            end
-        end
-    end
-    # Put everything togeter
-    for ind = 1:nprocess
-        if list_workers[ind] == 1
-            Base.LinAlg.axpy!(1, ms.dvecθ_remote[ind], dvec)
-        else
-            Base.LinAlg.axpy!(1, fetch(ms.dvecθ_remote[ind]), dvec)
+        if dtype == "gradient"
+            gradient!(dvec, ms.simulations[i],
+                      variable, true)
+        elseif dtype == "hessian_approx"
+            hessian_approx!(dvec, ms.simulations[i], p,
+                           variable, true)
         end
     end
     return dvec
@@ -146,36 +83,12 @@ function derivatives_x0!{T, N, Ny, Nx, Nθ, M}(
     end
     # Make all the computations on remote instances
     for i = 1:M
-        proc = ms.list_procs[i]
-        if proc == 1
-            if dtype == "gradient"
-                gradient!(ms.dvecx0_remote[i], ms.simulations[i],
-                          variable, false)
-            elseif dtype == "hessian_approx"
-                hessian_approx!(ms.dvecx0_remote[i], ms.simulations[i],
-                                p[i], variable, false)
-            end
-        else
-            if dtype == "gradient"
-                ms.dvecx0_remote[i] = remotecall(
-                    gradient!, proc, fetch(ms.dvecx0_remote[i]),
-                    fetch(ms.simulations[i]), variable,
-                    false)
-            elseif dtype == "hessian_approx"
-                ms.dvecx0_remote[i] = remotecall(
-                    hessian_approx!, proc, fetch(ms.dvecx0_remote[i]),
-                    fetch(ms.simulations[i]), p[i], variable,
-                    false)
-            end
-        end
-    end
-    # Put everything togeter
-    for i = 1:M
-        proc = ms.list_procs[i]
-        if proc == 1
-            Base.LinAlg.axpy!(1, ms.dvecx0_remote[i], dvec[i])
-        else
-            Base.LinAlg.axpy!(1, fetch(ms.dvecx0_remote[i]), dvec[i])
+        if dtype == "gradient"
+            gradient!(dvec[i], ms.simulations[i],
+                      variable, false)
+        elseif dtype == "hessian_approx"
+            hessian_approx!(dvec[i], ms.simulations[i],
+                            p[i], variable, false)
         end
     end
     return dvec
@@ -208,23 +121,11 @@ function constr!{T, N, Ny, Nx, Nθ, M}(
         ms::MultipleShooting{T, N, Ny, Nx, Nθ, M})
     # Get x
     for i = 1:M-1
-        proc = ms.list_procs[i]
-        if proc == 1
-            copy!(c[i], ms.simulations[i].x)
-        else
-            copy!(c[i], remotecall_fetch(get_x, proc, fetch(ms.simulations[i])))
-        end
+        copy!(c[i], ms.simulations[i].x)
     end
     # subtract x0
     for i = 2:M
-        proc = ms.list_procs[i]
-        if proc == 1
-            Base.LinAlg.axpy!(-1, ms.simulations[i].x0, c[i-1])
-        else
-            Base.LinAlg.axpy!(-1,
-                remotecall_fetch(get_x0, proc, fetch(ms.simulations[i])),
-                c[i-1])
-        end
+        Base.LinAlg.axpy!(-1, ms.simulations[i].x0, c[i-1])
     end
     return c
 end
@@ -235,40 +136,11 @@ function constr_jac!{T, N, Ny, Nx, Nθ, M}(
         variable="θ")
     # Get x
     for i = 1:M-1
-        proc = ms.list_procs[i]
-        if proc == 1
-            if variable == "x0"
-                jac[i] .= get_dxdx0(ms.simulations[i])
-            elseif variable == "θ"
-                jac[i] .= get_dxdθ(ms.simulations[i])
-            end
-        else
-            if variable == "x0"
-                jac[i] .= remotecall_fetch(get_dxdx0, proc,
-                                           fetch(ms.simulations[i]))
-            elseif variable == "θ"
-                jac[i] .= remotecall_fetch(get_dxdθ, proc,
-                                           fetch(ms.simulations[i]))
-            end
+        if variable == "x0"
+            jac[i] .= get_dxdx0(ms.simulations[i])
+        elseif variable == "θ"
+            jac[i] .= get_dxdθ(ms.simulations[i])
         end
     end
     return jac
-end
-
-
-function deepcopy_everywhere{T}(instance::T, list_procs)
-    if all(list_procs .== 1)
-        instance_remote = Vector{Union{T}}(length(list_procs))
-    else
-        instance_remote = Vector{Union{Future, T}}(length(list_procs))
-    end
-    for i in 1:length(list_procs)
-        proc = list_procs[i]
-        if proc == 1
-            instance_remote[i] = deepcopy(instance)
-        else
-            instance_remote[i] = remotecall(deepcopy, proc, instance)
-        end
-    end
-    return instance_remote
 end

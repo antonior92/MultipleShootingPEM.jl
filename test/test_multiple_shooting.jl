@@ -1,9 +1,4 @@
 @testset "Test multiple shooting" begin
-    nprocess = 5
-    pids = addprocs(nprocess-1)
-    list_procs = [1; 1; pids[[1, 1, 2, 2, 3, 3, 4, 4]]]
-    @everywhere import MultipleShootingPEM
-    ms = MultipleShootingPEM
     # Define logistic map
     function logistic_f(x_next, x, k, θ)
         x_next .=  θ*x - θ*x.^2
@@ -49,22 +44,21 @@
     θ = [3.78, 3.78, 1.00]
     # Define polynomial model
     # f(x) = θ1*x - θ2*x^2
-    @everywhere function f(y, dx, dθ, x, k, θ)
+    function f(y, dx, dθ, x, k, θ)
         y .= θ[1]*x - θ[2]*x.^2
         dx .= θ[1] - 2*θ[2]*x
         dθ .=  [ x  -x.^2  0]
         return
     end
     # g(x) = x
-    @everywhere function g(y, dx, dθ, x, k, θ)
+    function g(y, dx, dθ, x, k, θ)
         y .= θ[3]*x
         dx .= θ[3]
         dθ .=  [ 0 0 x ]
         return
     end
     multiple_shoot = ms.MultipleShooting(f, g, x0_list,
-                                         y, k0_list, θ,
-                                         list_procs)
+                                         y, k0_list, θ)
 
     @testset "Test function evaluation" begin
         for m = 1:10
@@ -121,7 +115,7 @@
         function wrapper_gradient(x0_expanded)
             x0_list1 = [[x0] for x0 in x0_expanded]
             ms.new_simulation!(multiple_shoot, x0_list1, θ)
-            gradx0 = ms.deepcopy_everywhere(zeros(1), ones(list_procs))
+            gradx0 = [zeros(1) for x0 in x0_expanded]
             ms.gradient!(gradx0, multiple_shoot, "x0")
             gradx0_expanded = [g[1] for g in gradx0]
             return gradx0_expanded
@@ -137,18 +131,6 @@
         end
     end
 
-    @testset "Test deepcopy everywhere" begin
-        mat = ones(10, 10)
-        mat_remote = ms.deepcopy_everywhere(mat, [1; pids])
-        workers_list = [1; pids]
-        for i = 1:length(workers_list)
-            if workers_list[i] != 1
-                @test isa(mat_remote[i], Future)
-                @test mat_remote[i].where == workers_list[i]
-            end
-            @test fetch(mat_remote[i]) == mat
-        end
-    end
 
     @testset "Test constraint" begin
         constraint = [zeros(1) for i = 1:9]
@@ -217,5 +199,4 @@
             @test wrapper_jacobian(x0_expanded) ≈ finite_difference_jacobian(x0_expanded) rtol=1e-3
         end
     end
-    rmprocs(pids)
 end

@@ -27,11 +27,10 @@ end
 function OptimizationProblem(f::Function, g::Function,
                              x0_list::Vector{Vector{Float64}},
                              y::Vector{Vector{Float64}},
-                             k0_list::Vector{Int}, θ,
-                             list_procs::Vector{Int};
+                             k0_list::Vector{Int}, θ;
                              loss=L2DistLoss())
    ms = MultipleShooting(f, g, x0_list, y,
-                         k0_list, θ, list_procs, loss)
+                         k0_list, θ, loss)
    # Problem dimensions
    M = length(x0_list)
    N = length(y)

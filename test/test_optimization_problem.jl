@@ -1,9 +1,4 @@
 @testset "Test optimization problem" begin
-    nprocess = 5
-    pids = addprocs(nprocess-1)
-    list_procs = [1; 1; pids[[1, 1, 2, 2, 3, 3, 4, 4]]]
-    @everywhere import MultipleShootingPEM
-    ms = MultipleShootingPEM
     # Define logistic map
     function logistic_f(x_next, x, k, θ)
         x_next .=  θ*x - θ*x.^2
@@ -63,8 +58,7 @@
         return
     end
     opt = ms.OptimizationProblem(f, g, x0_list,
-                                  y, k0_list, θ,
-                                  list_procs)
+                                  y, k0_list, θ)
 
 
     @testset "Test cost funciton" begin
@@ -144,7 +138,6 @@
             end
         end
     end
-    rmprocs(pids)
 end
 
 @testset "Test extended vector conversions" begin
@@ -246,7 +239,6 @@ end
 
     # Define initial values
     k0_list = [1]
-    list_procs = [1]
     x0_list = [[5, 0.6, 0.5]]
     θ0 = [-0.0047, 0.097, 0.097, 0.98]
 
@@ -268,7 +260,7 @@ end
       return
     end
 
-    opt = ms.OptimizationProblem(f, g, x0_list, y, k0_list, θ0, list_procs)
+    opt = ms.OptimizationProblem(f, g, x0_list, y, k0_list, θ0)
 
     res = ms.solve(opt, options=Dict("gtol" => 1e-12,
                                      "xtol" => 1e-10))
@@ -283,7 +275,6 @@ end
 
 @testset "Test multiple shooting" begin
     M = 10
-    list_procs = ones(Int, M)
     function linear_f(x_next, x, k)
         A = [-0.005    0   -0.1;
              0         0    0.1;
@@ -338,7 +329,7 @@ end
       return
     end
 
-    opt = ms.OptimizationProblem(f, g, x0_list, y, k0_list, θ0, list_procs)
+    opt = ms.OptimizationProblem(f, g, x0_list, y, k0_list, θ0)
 
     res = ms.solve(opt, options=Dict("gtol" => 1e-8,
                                      "xtol" => 1e-8,
@@ -348,78 +339,4 @@ end
     initial_error = norm((θ0 - θ_opt)./θ_opt, Inf)
 
     @test final_error / initial_error < 0.1
-end
-
-@testset "Test multiple shooting multiple processors" begin
-    M = 10
-    nprocess = 5
-    pids = addprocs(nprocess-1)
-    list_procs = [1; 1; pids[[1, 1, 2, 2, 3, 3, 4, 4]]]
-    @everywhere import MultipleShootingPEM
-    ms = MultipleShootingPEM
-    function linear_f(x_next, x, k)
-        A = [-0.005    0   -0.1;
-             0         0    0.1;
-             1.0      -1.0    0]
-        x_next .=  A*x
-        return
-    end
-    function linear_g(y, x, k)
-        y .= dot([1, -1, 0], x)
-        return
-    end
-
-    # Define initial conditions
-    x0 = [5, 0.6, 0.5]
-    x0_list = Vector{Vector{Float64}}(10)
-    x0_list[1] = copy(x0)
-    grid = collect(1:100:1001)
-    k0_list = grid[1:end-1]
-    # Initialize buffer
-    y = Vector{Vector{Float64}}(1000)
-    for i = 1:length(y)
-        y[i] = zeros(1)
-    end
-    # Simulate
-    x_final = copy(x0)
-    for i = 1:length(grid)-1
-        x_final = ms.simulate_space_state!(y[grid[i]:grid[i+1]-1],
-                                          linear_f, linear_g,
-                                          x0, (grid[i], grid[i+1]-1))
-        if i != length(grid)-1
-           x0 .= x_final
-           x0_list[i+1] = copy(x0)
-        end
-    end
-
-    θ0 = [-0.0049, 0.097, 0.097, 1.0]
-    @everywhere function f(y, dx, dθ, x, k, θ)
-        A = [θ[1]  0 -θ[2];
-             0     0  θ[3];
-             θ[4] -θ[4]  0]
-         y .= A*x
-         dx .= A
-         dθ .= [x[1] -x[3]    0      0;
-                0      0      x[3]   0;
-                0      0       0    x[1]-x[2]]
-         return
-    end
-    @everywhere function g(y, dx, dθ, x, k, θ)
-      y .= dot([1, -1, 0], x)
-      dx .= [1 -1 0]
-      dθ .=  0
-      return
-    end
-
-    opt = ms.OptimizationProblem(f, g, x0_list, y, k0_list, θ0, list_procs)
-
-    res = ms.solve(opt, options=Dict("gtol" => 1e-8,
-                                     "xtol" => 1e-8,
-                                     "maxiter" => 200))
-    θ_opt = [-0.005, 0.1, 0.1, 1.0]
-    final_error = norm((res["x"][1:4] - θ_opt)./θ_opt,  Inf)
-    initial_error = norm((θ0 - θ_opt)./θ_opt, Inf)
-
-    @test final_error / initial_error < 0.1
-    rmprocs(pids)
 end
