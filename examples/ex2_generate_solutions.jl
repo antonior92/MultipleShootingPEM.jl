@@ -42,14 +42,14 @@ end
     srand(seed)
     θ0 = nn.initial_guess(mdl)
     k0 = 1
-    k0_list = collect(k0:shoot_len:k0+Ni-1)=
+    k0_list = collect(k0:shoot_len:k0+Ni-1)
     yi_aux = [[element] for element in yi]
     x0_list = yi_aux[k0_list]
     opt = ms.OptimizationProblem(f, g, x0_list, yi_aux, k0_list, θ0)
 
     res = ms.solve(opt, options=Dict("gtol" => 1e-12,
                                      "xtol" => 1e-12,
-                                     "maxiter" => 3000,
+                                     "maxiter" => 2000,
                                      "initial_tr_radius" => 1))
     delete!(res, "jac")
     JLD2.@save "solutions/sol"*string(seed)*"_"*string(shoot_len)*".jld2" res
@@ -68,4 +68,6 @@ if ~Base.Filesystem.isdir("solutions")
     Base.Filesystem.mkdir("solutions")
 end
 
+#@everywhere compute_solution(shoot_len) = compute_solution(1, shoot_len)
+#pmap(compute_solution, [Ni, 50, 20, 10, 5, 3])
 pmap(compute_solutions, 1:100)
