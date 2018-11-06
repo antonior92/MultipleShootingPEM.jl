@@ -52,8 +52,7 @@ for (i, M) in enumerate(M_list)
 
     yi_aux = [[element] for element in yi]
     x0_list = yi_aux[k0_list]
-    opt = ms.OptimizationProblem(f, g, x0_list, yi_aux, k0_list, θ0,
-                                             list_procs)
+    opt = ms.OptimizationProblem(f, g, x0_list, yi_aux, k0_list, θ0)
 
     res = ms.solve(opt, options=Dict("gtol" => 1e-10,
                                      "xtol" => 1e-10,

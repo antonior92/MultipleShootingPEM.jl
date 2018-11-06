@@ -42,12 +42,10 @@ end
     srand(seed)
     θ0 = nn.initial_guess(mdl)
     k0 = 1
-    k0_list = collect(k0:shoot_len:k0+Ni-1)
-    list_procs = ones(Int, length(k0_list))
+    k0_list = collect(k0:shoot_len:k0+Ni-1)=
     yi_aux = [[element] for element in yi]
     x0_list = yi_aux[k0_list]
-    opt = ms.OptimizationProblem(f, g, x0_list, yi_aux, k0_list, θ0,
-                                list_procs)
+    opt = ms.OptimizationProblem(f, g, x0_list, yi_aux, k0_list, θ0)
 
     res = ms.solve(opt, options=Dict("gtol" => 1e-12,
                                      "xtol" => 1e-12,
