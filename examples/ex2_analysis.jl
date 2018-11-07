@@ -71,6 +71,8 @@ plot!(x, sort(MSE[:, 3]), label= "20" , yscale=:log10)
 plot!(x, sort(MSE[:, 4]), label= "10" , yscale=:log10)
 plot!(x, sort(MSE[:, 5]), label= "5" , yscale=:log10)
 plot!(x, sort(MSE[:, 6]), label= "3" , yscale=:log10)
+plot!(x, 1489.5*ones(length(x)), color=:black, lw=2, s=:dash)
+
 
 # Scatter plot
 attribute = "constr_violation"
