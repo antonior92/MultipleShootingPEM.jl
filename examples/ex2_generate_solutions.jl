@@ -50,7 +50,7 @@ end
     res = ms.solve(opt, options=Dict("gtol" => 1e-12,
                                      "xtol" => 1e-12,
                                      "maxiter" => 2000,
-                                     "initial_constr_penalty" => 0.01))
+                                     "initial_constr_penalty" => 0.0001))
     delete!(res, "jac")
     JLD2.@save "solutions/sol"*string(seed)*"_"*string(shoot_len)*".jld2" res
 end
