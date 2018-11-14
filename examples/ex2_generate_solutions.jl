@@ -72,7 +72,7 @@ end
 # Multiple shooting error estimation
 @everywhere function compute_solutions(seed)
     println("seed = " * string(seed))
-    shoot_len_list = [3]
+    shoot_len_list = [3, "ARX", "OE"]
     for shoot_len in shoot_len_list
         compute_solution(seed, shoot_len)
     end
