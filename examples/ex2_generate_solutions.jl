@@ -37,7 +37,7 @@ end
     return
 end
 
-@everywhere function compute_solution(seed, shoot_len)
+@everywhere function compute_solution(seed, shoot_len::Int)
     println("shoot_len = " * string(shoot_len))
     srand(seed)
     θ0 = nn.initial_guess(mdl)
@@ -50,19 +50,34 @@ end
     res = ms.solve(opt, options=Dict("gtol" => 1e-12,
                                      "xtol" => 1e-12,
                                      "maxiter" => 2000,
-                                     "initial_constr_penalty" => 0.0001))
+                                     "initial_constr_penalty" => 0.01))
     delete!(res, "jac")
+    JLD2.@save "solutions/sol"*string(seed)*"_"*string(shoot_len)*".jld2" res
+end
+
+function compute_solution(seed, shoot_len::String)
+    tic()
+    if shoot_len == "ARX"
+        dynfit, opt, e = nn.narx(mdl, yterms, uterms, identification_data,
+                                 maxIter=2000);
+    elseif shoot_len == "OE"
+        dynfit, opt, e = nn.noe(mdl, yterms, uterms, identification_data,
+                                use_extended=false, maxIter=2000);
+    end
+    execution_time = toc()
+    res = Dict("x" => dynfit, "execution_time" => execution_time)
     JLD2.@save "solutions/sol"*string(seed)*"_"*string(shoot_len)*".jld2" res
 end
 
 # Multiple shooting error estimation
 @everywhere function compute_solutions(seed)
     println("seed = " * string(seed))
-    shoot_len_list = [Ni, 50, 20, 10, 5, 3]
+    shoot_len_list = [3]
     for shoot_len in shoot_len_list
         compute_solution(seed, shoot_len)
     end
 end
+
 
 if ~Base.Filesystem.isdir("solutions")
     Base.Filesystem.mkdir("solutions")
@@ -70,4 +85,4 @@ end
 
 #@everywhere compute_solution(shoot_len) = compute_solution(1, shoot_len)
 #pmap(compute_solution, [Ni, 50, 20, 10, 5, 3])
-pmap(compute_solutions, 1:100)
+pmap(compute_solutions_original_paper, 1:100)
