@@ -28,13 +28,14 @@ ys = nn.get_slice(freerun, validation_data.y);
 
 # Compute MSE
 seeds = 1:100
-shoot_len_list = [3]
+shoot_len_list = [3, "ARX", "OE"]
 θ_est = Matrix{Vector{Float64}}(length(seeds),  length(shoot_len_list))
 MSE = Matrix{Float64}(length(seeds), length(shoot_len_list))
+execution_time = Matrix{Float64}(length(seeds), length(shoot_len_list))
 res = Matrix(length(seeds), length(shoot_len_list))
 for (i, s) in enumerate(seeds)
     for (j, shoot_len) in enumerate(shoot_len_list)
-        file_name = "solutions_maxiter_3000_only3/sol"*string(s)*"_"*string(shoot_len)*".jld2"
+        file_name = "solutions/sol"*string(s)*"_"*string(shoot_len)*".jld2"
         res[i, j] = try
             load(file_name, "res")
         catch
@@ -42,6 +43,7 @@ for (i, s) in enumerate(seeds)
         end
         if isa(res[i, j], Dict)
             θ_est[i, j] = res[i, j]["x"][1:41]
+            execution_time[i, j] = res[i, j]["execution_time"]
             MSE[i, j] = mean((ys - nn.predict(freerun, θ_est[i, j])).^2 )
         end
     end
