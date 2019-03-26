@@ -1,3 +1,4 @@
+# NARMAX chaotic (impossible to solve!!)
 import MultipleShootingPEM
 ms = MultipleShootingPEM
 using Plots
@@ -28,7 +29,7 @@ end
 
 # Generate Data
 srand(4)
-N = 200
+N = 1000
 rep = 10
 v = σ0*rand(N+1)
 y = zeros(N+1)
@@ -62,7 +63,7 @@ function h(z, dx, dθ, x, k, θ)
 end
 
 # Multiple shooting error estimation
-M = 200
+M = 1000
 k0 = 1
 k0_list = collect(k0:Int(N//M):k0+N-1)
 x0_list =[[x_i] for x_i in v[k0_list+1]]
@@ -108,13 +109,14 @@ function compute_MSE(; β=β0, γ=γ0)
 end
 
 srand(4)
-n_experiments = 10
+n_experiments = 1
 θ_list = Array{Float64}[]
 cost_list = Float64[]
 res_list = []
-θ0_list = [[β0 + 0.001*randn(); γ0+ 0.001*randn()] for i = 1:n_experiments]
+MSE_list = []
+θ0_list = [[β0 + 0.000*randn(); γ0+ 0.000*randn()] for i = 1:n_experiments]
 for θ0 in θ0_list
-    σ = 0.002
+    σ = 0.000
     x0_list_modified = [zeros(1) for i = 1:M]
     for i = 1:M
         x0_list_modified[i] += x0_list[i] + σ*randn()
@@ -128,13 +130,12 @@ for θ0 in θ0_list
                                      "initial_tr_radius" => 0.01))
     θ_est = res["x"][1:2]
     cost_est = res["fun"]
+    MSE = compute_MSE(β=θ_est[1], γ=θ_est[2])
 
 
-    println(θ_est)
+    println(θ0, θ_est, MSE)
     push!(θ_list, θ_est)
     push!(cost_list, cost_est)
     push!(res_list, res)
+    push!(MSE_list, MSE)
 end
-
-
-MSE = [compute_MSE(β=θi[1], γ=θi[2])  for θi in θ_list]
