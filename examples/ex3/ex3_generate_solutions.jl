@@ -89,5 +89,5 @@ for ampl in [0.05, 0.2]
 end
 
 
-sort!(options_dicts)
+shuffle!(options_dicts)
 map(run_and_save, options_dicts)
