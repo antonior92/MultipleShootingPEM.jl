@@ -3,6 +3,7 @@ import Example3
 using JLD2
 using Plots
 using JSON
+pyplot()
 
 N=1000
 function run_and_save(options_dict)
