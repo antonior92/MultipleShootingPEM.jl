@@ -60,16 +60,19 @@ function pendulum(;N=2000, σv=0.,σw=0., seed=1, ampl=0, rep=20)
     return Dict("u" => u, "y" => y, "x" => x, "v"=> v, "w" => w)
 end
 
-function inverted_pendulum(;N=2000, σv=0.,σw=0., seed=1, transient=10000)
+function inverted_pendulum(;N=2000, σv=0.,σw=0., ampl=0, rep=20, seed=1, transient=10000)
     srand(seed)
-    u = 10*ones(N+transient)
+    Δr = repeat(ampl*randn(Int((N+transient)//rep)), inner=rep)
+    total_len = length(Δr)
+    n = length(Δr)
+    u = 10*ones(total_len)
     x = [π, 0]
-    y = π * ones(N+transient)
-    r = π * ones(N+transient)
-    e = zeros(N+transient)
-    v = σv*randn(N+transient)
-    w = σw*randn(N+transient)
-    for k in 4:N+transient-1
+    y = π * ones(total_len)
+    r = π * ones(total_len) + Δr
+    e = zeros(total_len)
+    v = σv*randn(total_len)
+    w = σw*randn(total_len)
+    for k in 4:total_len-1
         x = nl_sys(x, u[k]+ w[k])
         y[k] = x[1] + v[k]
         e[k] = r[k] - y[k]
