@@ -21,10 +21,14 @@ function run_and_save(options_dict)
         # Save all data
         JLD2.@save dir*"/results.jld2" results
         # Plot figures
-        p_input = plot(results["data"]["u"])
-        savefig(p_input, dir*"/input_signal.png")
-        p_output = plot(results["data"]["y"])
-        savefig(p_output, dir*"/output_signal.png")
+        try
+            p_input = plot(results["data"]["u"])
+            savefig(p_input, dir*"/input_signal.png")
+        end
+        try
+            p_output = plot(results["data"]["y"])
+            savefig(p_output, dir*"/output_signal.png")
+        end
         function plot_contour(results; log=false)
             if log
                 p = contour(results["grid"]["gl"], results["grid"]["ka"], log10(results["grid"]["cost"]),
@@ -42,13 +46,19 @@ function run_and_save(options_dict)
             end
             return p
         end
-        p_contour = plot_contour(results, log=false)
-        savefig(p_contour, dir*"/contour.png")
-        p_contour = plot_contour(results, log=true)
-        savefig(p_contour, dir*"/contour_log.png")
-        if length(results["solutions"]) != 0
-            p_hist = histogram(results["solutions"]["cost"])
-            savefig(p_hist, dir*"/histogram.png")
+        try
+            p_contour = plot_contour(results, log=false)
+            savefig(p_contour, dir*"/contour.png")
+        end
+        try
+            p_contour = plot_contour(results, log=true)
+            savefig(p_contour, dir*"/contour_log.png")
+        end
+        try
+            if length(results["solutions"]) != 0
+                p_hist = histogram(results["solutions"]["cost"])
+                savefig(p_hist, dir*"/histogram.png")
+            end
         end
         # Save config file separately to be easy to check it
         json_string = JSON.json(results["options"])
