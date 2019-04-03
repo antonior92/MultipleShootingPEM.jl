@@ -7,6 +7,7 @@ pyplot()
 
 N=1000
 function run_and_save(options_dict)
+    println("Create directory")
     if ~isdir("examples/ex3/solutions")
         mkdir("examples/ex3/solutions")
     end
@@ -14,8 +15,12 @@ function run_and_save(options_dict)
     root_dir = "examples/ex3/solutions/sol_"*time
     mkdir(root_dir)
     for sim_len in [1, 2, 3, 5, 10, 20, 40, N]
-        options_dict["pem"] = merge(options_dict["pem"], Dict(:sim_len=>10))
+        println("")
+        println("**************************")
+        println("sim_len = "*string(sim_len))
+        options_dict["pem"] = merge(options_dict["pem"], Dict(:sim_len=>sim_len))
         results = Example3.runner(options_dict)
+        println("Save results...")
         dir = root_dir*"/sim_len_"*string(sim_len)
         mkdir(dir)
         # Save all data
