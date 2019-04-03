@@ -1,18 +1,19 @@
-include("ex3_base.jl")
-import Example3
-using JLD2
-using Plots
-using JSON
-pyplot()
+addprocs(7)
+@everywhere include("ex3_base.jl")
+@everywhere import Example3
+@everywhere using JLD2
+@everywhere using Plots
+@everywhere using JSON
+@everywhere pyplot()
 
-N=1000
-function run_and_save(options_dict)
+@everywhere N=1000
+@everywhere function run_and_save(options_dict)
     println("Create directory")
-    if ~isdir("examples/ex3/solutions")
-        mkdir("examples/ex3/solutions")
+    if ~isdir("solutions")
+        mkdir("solutions")
     end
     time = Dates.format(Dates.now(), "yyyy-mm-ddTHH:MM:SS-sss")
-    root_dir = "examples/ex3/solutions/sol_"*time
+    root_dir = "solutions/sol_"*time*"_"*string(rand(1:100000))
     mkdir(root_dir)
     for sim_len in [1, 2, 3, 5, 10, 20, 40, N]
         println("")
@@ -106,4 +107,4 @@ end
 
 
 shuffle!(options_dicts)
-map(run_and_save, options_dicts)
+pmap(run_and_save, options_dicts)
