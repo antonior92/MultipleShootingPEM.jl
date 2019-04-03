@@ -1,4 +1,5 @@
 addprocs(7)
+@everywhere import MultipleShootingPEM
 @everywhere include("ex3_base.jl")
 @everywhere import Example3
 @everywhere using JLD2
