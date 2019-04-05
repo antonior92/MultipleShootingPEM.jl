@@ -41,7 +41,7 @@ for ampl in [10, 50]
     for σv in [0, 0.2]
         d = Dict("data_generator" => Dict(:t=>"pendulum", :N=>N,
                                           :σw=>0., :σv=>σv,
-                                          :ampl=>ampl, :rep=>20,
+                                          :ampl=>ampl, :rep=>16,
                                           :seed=>1),
                  "pem" => Dict(:model=>"output_error"),
                  "grid_cost_funtion" => Dict(:gl=>(10, 60), :ka=>(0.5, 10),
@@ -56,7 +56,7 @@ end
 for ampl in [0.05, 0.2]
     for σv in [0, 0.03]
         d = Dict("data_generator" => Dict(:t=>"inverted_pendulum",
-                                          :N=>1000, :ampl=>ampl, :rep=>20,
+                                          :N=>1000, :ampl=>ampl, :rep=>16,
                                           :σv=>σv, :seed=>1),
                  "pem" => Dict(:model=>"output_error"),
                  "grid_cost_funtion" => Dict(:gl=>(0, 100), :ka=>(0, 20),
