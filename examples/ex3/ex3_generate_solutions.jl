@@ -3,9 +3,7 @@ addprocs(7)
 @everywhere include("ex3_base.jl")
 @everywhere import Example3
 @everywhere using JLD2
-@everywhere using Plots
 @everywhere using JSON
-@everywhere pyplot()
 
 @everywhere N=1024
 @everywhere function run_and_save(options_dict)
