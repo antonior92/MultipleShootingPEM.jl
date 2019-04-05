@@ -35,7 +35,7 @@ addprocs(7)
     end
 end
 
-sim_len = [2**i for i in 0:10]
+sim_len = [2^i for i in 0:10]
 options_dicts = []
 for ampl in [10, 50]
     for σv in [0, 0.2]
