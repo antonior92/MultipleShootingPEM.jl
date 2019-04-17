@@ -45,7 +45,7 @@ for ampl in [10, 50]
                  "grid_cost_funtion" => Dict(:gl=>(10, 60), :ka=>(0.5, 10),
                                              :npoints => (100, 100)),
                  "solve_grid" => Dict(:gl=>(10, 60), :ka=>(0.5, 10),
-                                      :npoints => (5, 5)),
+                                      :npoints => (0, 0)),
                  "sim_len" => sim_len)
         push!(options_dicts, d)
     end
@@ -60,12 +60,12 @@ for ampl in [0.05, 0.2]
                  "grid_cost_funtion" => Dict(:gl=>(0, 100), :ka=>(0, 20),
                                              :npoints => (100, 100)),
                  "solve_grid" => Dict(:gl=>(0, 60), :ka=>(0.5, 10),
-                                      :npoints => (5, 5)),
+                                      :npoints => (0, 0)),
                  "sim_len" => sim_len)
         push!(options_dicts, d)
     end
 end
 
 
-shuffle!(options_dicts)
+#shuffle!(options_dicts)
 pmap(run_and_save, options_dicts)
