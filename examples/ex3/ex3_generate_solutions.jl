@@ -45,19 +45,19 @@ d = Dict("data_generator" => Dict(:t=>"pendulum", :N=>N,
          "grid_cost_funtion" => Dict(:gl=>(10, 60), :ka=>(0.5, 10),
                                      :npoints => (100, 100)),
          "solve_grid" => Dict(:gl=>(10, 60), :ka=>(0.5, 10),
-                              :npoints => (5, 5)),
+                              :npoints => (0, 0)),
          "sim_len" => sim_len)
 push!(options_dicts, d)
-# Full turns around midpoint
+# Full turns around center
 d = Dict("data_generator" => Dict(:t=>"pendulum", :N=>N,
                                   :σw=>0., :σv=>0,
-                                  :ampl=>10, :rep=>16,
+                                  :ampl=>50, :rep=>16,
                                   :seed=>1),
          "pem" => Dict(:model=>"output_error"),
          "grid_cost_funtion" => Dict(:gl=>(10, 60), :ka=>(0.5, 10),
                                      :npoints => (100, 100)),
          "solve_grid" => Dict(:gl=>(10, 60), :ka=>(0.5, 10),
-                              :npoints => (5, 5)),
+                              :npoints => (0, 0)),
          "sim_len" => sim_len)
 push!(options_dicts, d)
 # Near unstable region
@@ -65,10 +65,10 @@ d = Dict("data_generator" => Dict(:t=>"inverted_pendulum",
                                   :N=>N, :ampl=>0.2, :rep=>16,
                                   :σv=>0, :seed=>1),
          "pem" => Dict(:model=>"output_error"),
-         "grid_cost_funtion" => Dict(:gl=>(0, 100), :ka=>(0, 20),
+         "grid_cost_funtion" => Dict(:gl=>(10, 60), :ka=>(0.5, 10),
                                      :npoints => (100, 100)),
-         "solve_grid" => Dict(:gl=>(0, 60), :ka=>(0.5, 10),
-                              :npoints => (5, 5)),
+         "solve_grid" => Dict(:gl=>(10, 60), :ka=>(0.5, 10),
+                              :npoints => (0, 0)),
          "sim_len" => sim_len)
 push!(options_dicts, d)
 

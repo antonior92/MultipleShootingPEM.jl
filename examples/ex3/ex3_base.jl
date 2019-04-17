@@ -95,6 +95,7 @@ end
 function output_error_model(data_dict; sim_len=1)
     u = data_dict["u"]
     y = data_dict["y"]
+    x = data_dict["x"]
     k0 = 2
     function g(x_next, dx, dθ, x, k, θ)
         gl = θ[1]
@@ -116,10 +117,12 @@ function output_error_model(data_dict; sim_len=1)
 
     N = length(y)
     k0_list = collect(1:sim_len:N-k0-1)
+    x0_ideal_list = [[x[k-1], (x[k] - x[k-1])/D] for k in k0_list+k0]
     x0_list = [[y[k-1], (y[k] - y[k-1])/D] for k in k0_list+k0]
     y_list = [[yi] for yi in y[k0:end-1]]
     θ = [0, 0]
-    return ms.MultipleShooting(g, h, x0_list, y_list, k0_list, θ), ms.OptimizationProblem(g, h, x0_list, y_list, k0_list, θ)
+    return (ms.MultipleShooting(g, h, x0_ideal_list, y_list, k0_list, θ),
+            ms.OptimizationProblem(g, h, x0_list, y_list, k0_list, θ))
 end
 
 function pem(data_dict; model="output_error", kwargs...)
@@ -155,8 +158,7 @@ function grid_cost_funtion(multiple_shoot; gl=(10, 60), ka=(0.5, 10), npoints=(5
 end
 
 ################ Solve optimization problem for grid of initial points ##############
-function solve_grid(multiple_shoot, opt; gl=(10, 60),
-                    ka=(0.5, 10), npoints=(3, 3))
+function solve_grid(opt; gl=(10, 60), ka=(0.5, 10), npoints=(3, 3))
     n_experiments = npoints[1]*npoints[2]
     if n_experiments == 0
         return Dict()
@@ -170,7 +172,7 @@ function solve_grid(multiple_shoot, opt; gl=(10, 60),
     θ0_list = [[g_l, ka] for g_l in g_l_range for ka in ka_range]
     p = Progress(n_experiments, 1)
     for θ0 in θ0_list
-        x0_list = [oss.x0 for oss in multiple_shoot.simulations]
+        x0_list = [oss.x0 for oss in opt.ms.simulations]
         θ_ext = zeros(2 + length(x0_list)*2)
         ms.build_extended_vector!(θ_ext,  θ0, x0_list, 2, length(x0_list), 2)
         ms.update_simulation!(opt, θ_ext)
@@ -207,7 +209,7 @@ function runner(options_dict)
     println("Done!")
 
     println("Solving for diferent initial conditions")
-    solutions =  solve_grid(multiple_shoot, opt; options_dict["solve_grid"]...)
+    solutions =  solve_grid(opt; options_dict["solve_grid"]...)
     println("Done!")
     Dict("data" => data_dict, "options"=>options_dict,
          "grid" => grid_cost_fun, "solutions" => solutions)
