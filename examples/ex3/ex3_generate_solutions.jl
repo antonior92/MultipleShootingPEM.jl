@@ -1,4 +1,4 @@
-addprocs(7)
+addprocs(2)
 @everywhere import MultipleShootingPEM
 @everywhere include("ex3_base.jl")
 @everywhere import Example3
@@ -33,39 +33,43 @@ addprocs(7)
     end
 end
 
-sim_len = [2^i for i in 0:10]
+#sim_len = [2^i for i in 0:10]
+sim_len = [4, 16, 1024]
 options_dicts = []
-for ampl in [10, 50]
-    for σv in [0, 0.2]
-        d = Dict("data_generator" => Dict(:t=>"pendulum", :N=>N,
-                                          :σw=>0., :σv=>σv,
-                                          :ampl=>ampl, :rep=>16,
-                                          :seed=>1),
-                 "pem" => Dict(:model=>"output_error"),
-                 "grid_cost_funtion" => Dict(:gl=>(10, 60), :ka=>(0.5, 10),
-                                             :npoints => (100, 100)),
-                 "solve_grid" => Dict(:gl=>(10, 60), :ka=>(0.5, 10),
-                                      :npoints => (0, 0)),
-                 "sim_len" => sim_len)
-        push!(options_dicts, d)
-    end
-end
+# Near stable region
+d = Dict("data_generator" => Dict(:t=>"pendulum", :N=>N,
+                                  :σw=>0., :σv=>0,
+                                  :ampl=>10, :rep=>16,
+                                  :seed=>1),
+         "pem" => Dict(:model=>"output_error"),
+         "grid_cost_funtion" => Dict(:gl=>(10, 60), :ka=>(0.5, 10),
+                                     :npoints => (100, 100)),
+         "solve_grid" => Dict(:gl=>(10, 60), :ka=>(0.5, 10),
+                              :npoints => (5, 5)),
+         "sim_len" => sim_len)
+push!(options_dicts, d)
+# Full turns around midpoint
+d = Dict("data_generator" => Dict(:t=>"pendulum", :N=>N,
+                                  :σw=>0., :σv=>0,
+                                  :ampl=>10, :rep=>16,
+                                  :seed=>1),
+         "pem" => Dict(:model=>"output_error"),
+         "grid_cost_funtion" => Dict(:gl=>(10, 60), :ka=>(0.5, 10),
+                                     :npoints => (100, 100)),
+         "solve_grid" => Dict(:gl=>(10, 60), :ka=>(0.5, 10),
+                              :npoints => (5, 5)),
+         "sim_len" => sim_len)
+push!(options_dicts, d)
+# Near unstable region
+d = Dict("data_generator" => Dict(:t=>"inverted_pendulum",
+                                  :N=>N, :ampl=>0.2, :rep=>16,
+                                  :σv=>0, :seed=>1),
+         "pem" => Dict(:model=>"output_error"),
+         "grid_cost_funtion" => Dict(:gl=>(0, 100), :ka=>(0, 20),
+                                     :npoints => (100, 100)),
+         "solve_grid" => Dict(:gl=>(0, 60), :ka=>(0.5, 10),
+                              :npoints => (5, 5)),
+         "sim_len" => sim_len)
+push!(options_dicts, d)
 
-for ampl in [0.05, 0.2]
-    for σv in [0, 0.03]
-        d = Dict("data_generator" => Dict(:t=>"inverted_pendulum",
-                                          :N=>1000, :ampl=>ampl, :rep=>16,
-                                          :σv=>σv, :seed=>1),
-                 "pem" => Dict(:model=>"output_error"),
-                 "grid_cost_funtion" => Dict(:gl=>(0, 100), :ka=>(0, 20),
-                                             :npoints => (100, 100)),
-                 "solve_grid" => Dict(:gl=>(0, 60), :ka=>(0.5, 10),
-                                      :npoints => (0, 0)),
-                 "sim_len" => sim_len)
-        push!(options_dicts, d)
-    end
-end
-
-
-#shuffle!(options_dicts)
 pmap(run_and_save, options_dicts)
