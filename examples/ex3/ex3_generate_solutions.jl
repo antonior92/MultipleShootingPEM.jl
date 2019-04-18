@@ -34,30 +34,30 @@ addprocs(2)
 end
 
 #sim_len = [2^i for i in 0:10]
-sim_len = [4, 16, 1024]
+sim_len = [32, 1024]
 options_dicts = []
 # Near stable region
 d = Dict("data_generator" => Dict(:t=>"pendulum", :N=>N,
-                                  :σw=>0., :σv=>0,
+                                  :σw=>0., :σv=>0.03,
                                   :ampl=>10, :rep=>16,
                                   :seed=>1),
          "pem" => Dict(:model=>"output_error"),
-         "grid_cost_funtion" => Dict(:gl=>(10, 60), :ka=>(0.5, 10),
+         "grid_cost_funtion" => Dict(:gl=>(20, 50), :ka=>(0.5, 6),
                                      :npoints => (100, 100)),
-         "solve_grid" => Dict(:gl=>(10, 60), :ka=>(0.5, 10),
-                              :npoints => (0, 0)),
+         "solve_grid" => Dict(:gl=>(20, 50), :ka=>(0.5, 6),
+                              :npoints => (5, 5)),
          "sim_len" => sim_len)
 push!(options_dicts, d)
 # Full turns around center
 d = Dict("data_generator" => Dict(:t=>"pendulum", :N=>N,
-                                  :σw=>0., :σv=>0,
+                                  :σw=>0., :σv=>0.15,
                                   :ampl=>50, :rep=>16,
                                   :seed=>1),
          "pem" => Dict(:model=>"output_error"),
-         "grid_cost_funtion" => Dict(:gl=>(10, 60), :ka=>(0.5, 10),
+         "grid_cost_funtion" => Dict(:gl=>(20, 50), :ka=>(0.5, 6),
                                      :npoints => (100, 100)),
-         "solve_grid" => Dict(:gl=>(10, 60), :ka=>(0.5, 10),
-                              :npoints => (0, 0)),
+         "solve_grid" => Dict(:gl=>(20, 50), :ka=>(0.5, 6),
+                              :npoints => (5, 5)),
          "sim_len" => sim_len)
 push!(options_dicts, d)
 # Near unstable region
@@ -65,10 +65,10 @@ d = Dict("data_generator" => Dict(:t=>"inverted_pendulum",
                                   :N=>N, :ampl=>0.2, :rep=>16,
                                   :σv=>0, :seed=>1),
          "pem" => Dict(:model=>"output_error"),
-         "grid_cost_funtion" => Dict(:gl=>(10, 60), :ka=>(0.5, 10),
+         "grid_cost_funtion" => Dict(:gl=>(20, 50), :ka=>(0.5, 6),
                                      :npoints => (100, 100)),
-         "solve_grid" => Dict(:gl=>(10, 60), :ka=>(0.5, 10),
-                              :npoints => (0, 0)),
+         "solve_grid" => Dict(:gl=>(20, 50), :ka=>(0.5, 6),
+                              :npoints => (5, 5)),
          "sim_len" => sim_len)
 push!(options_dicts, d)
 

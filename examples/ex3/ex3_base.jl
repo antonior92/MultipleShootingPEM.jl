@@ -49,13 +49,15 @@ function pendulum(;N=2000, σv=0.,σw=0., seed=1, ampl=0, rep=20)
     else
         u = zeros(N)
     end
-    x = [π/2, 0]
+    x0 = [π/2, 0]
     y = zeros(N)
+    x = zeros(N+1, 2)
+    x[1, :] = x0
     v = σv*randn(N)
     w = σw*randn(N)
     for k in 1:N
-        x = nl_sys(x, u[k]+ w[k])
-        y[k] = x[1] + v[k]
+        x[k+1, :] = nl_sys(x[k, :], u[k]+ w[k])
+        y[k] = x[k+1, 1] + v[k]
     end
     return Dict("u" => u, "y" => y, "x" => x, "v"=> v, "w" => w)
 end
@@ -66,19 +68,21 @@ function inverted_pendulum(;N=2000, σv=0.,σw=0., ampl=0, rep=20, seed=1, trans
     total_len = length(Δr)
     n = length(Δr)
     u = 10*ones(total_len)
-    x = [π, 0]
+    x0 = [π, 0]
+    x = zeros(total_len, 2)
+    x[4, :] = x0
     y = π * ones(total_len)
     r = π * ones(total_len) + Δr
     e = zeros(total_len)
     v = σv*randn(total_len)
     w = σw*randn(total_len)
     for k in 4:total_len-1
-        x = nl_sys(x, u[k]+ w[k])
-        y[k] = x[1] + v[k]
+        x[k+1, :] = nl_sys(x[k, :], u[k]+ w[k])
+        y[k] = x[k+1, 1] + v[k]
         e[k] = r[k] - y[k]
         u[k+1] = dot(CTRL, [e[k], e[k-1], e[k-2], u[k], u[k-1]])
     end
-    u, y = u[transient:end], y[transient:end]
+    u, y, x = u[transient:end], y[transient:end], x[transient:end, :]
     return Dict("u" => u, "y" => y, "x" => x, "v" => v,
                 "w" => w, "e" => e, "r" => r)
 end
@@ -95,7 +99,7 @@ end
 function output_error_model(data_dict; sim_len=1)
     u = data_dict["u"]
     y = data_dict["y"]
-    x = data_dict["x"]
+    xx = data_dict["x"]
     k0 = 2
     function g(x_next, dx, dθ, x, k, θ)
         gl = θ[1]
@@ -117,7 +121,7 @@ function output_error_model(data_dict; sim_len=1)
 
     N = length(y)
     k0_list = collect(1:sim_len:N-k0-1)
-    x0_ideal_list = [[x[k-1], (x[k] - x[k-1])/D] for k in k0_list+k0]
+    x0_ideal_list = [xx[k, :] for k in k0_list+k0]
     x0_list = [[y[k-1], (y[k] - y[k-1])/D] for k in k0_list+k0]
     y_list = [[yi] for yi in y[k0:end-1]]
     θ = [0, 0]
