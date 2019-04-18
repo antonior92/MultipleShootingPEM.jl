@@ -50,7 +50,7 @@ d = Dict("data_generator" => Dict(:t=>"pendulum", :N=>N,
 push!(options_dicts, d)
 # Full turns around center
 d = Dict("data_generator" => Dict(:t=>"pendulum", :N=>N,
-                                  :σw=>0., :σv=>0.1,
+                                  :σw=>0., :σv=>0.09,
                                   :ampl=>50, :rep=>16,
                                   :seed=>1),
          "pem" => Dict(:model=>"output_error"),
