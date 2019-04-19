@@ -33,8 +33,8 @@ addprocs(2)
     end
 end
 
-#sim_len = [2^i for i in 0:10]
-sim_len = [32, 1024]
+sim_len = [2^i for i in 0:10]
+#sim_len = [32, 1024]
 options_dicts = []
 # Near stable region
 d = Dict("data_generator" => Dict(:t=>"pendulum", :N=>N,
