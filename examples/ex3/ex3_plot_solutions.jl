@@ -3,9 +3,34 @@ using Plots
 include("ex3_base.jl")
 import Example3
 using LaTeXStrings
+using CSV, DataFrames
 pgfplots()
 
 solutions = "solutions/"
+
+function contour_plot(results; use_log=false)
+    levels = 10
+    if !use_log
+        z = results["grid"]["cost"]
+    else
+        z = log10.(results["grid"]["cost"])
+        if results["options"]["pem"][:sim_len] == 1024
+            levels = 0:0.25:7
+        elseif results["options"]["pem"][:sim_len] == 32
+            levels = -4:0.25:2
+        end
+    end
+    p_contour = contourf(results["grid"]["gl"], results["grid"]["ka"], z,
+                        color=:viridis, levels=levels, xguide=L"g/l", yguide=L"k_a")
+    scatter!(p_contour, [Example3.GL], [Example3.KA], color="red", legend=false, ms=8)
+    if length(results["solutions"]) != 0
+        g_l_list = [min(max(θ[1], results["options"]["grid_cost_funtion"][:gl][1]), results["options"]["grid_cost_funtion"][:gl][2]) for θ in results["solutions"]["theta"]]
+        ka_list = [min(max(θ[2], results["options"]["grid_cost_funtion"][:ka][1]), results["options"]["grid_cost_funtion"][:ka][2]) for θ in results["solutions"]["theta"]]
+        scatter!(p_contour, g_l_list', ka_list', color="blue", ms=8)
+        plot!(p_contour, legend=false)
+    end
+    return p_contour
+end
 
 for root_dir in take!(walkdir(solutions))[2]
     # Plot contour
@@ -27,50 +52,27 @@ for root_dir in take!(walkdir(solutions))[2]
         first=false
         # Plot countour
         pyplot()
-        p_contour = contourf(results["grid"]["gl"], results["grid"]["ka"], results["grid"]["cost"],
-                             color=:viridis, levels=10)
-        scatter!(p_contour, [Example3.GL], [Example3.KA], color="red", legend=false)
-
-        if length(results["solutions"]) != 0
-            g_l_list = [min(max(θ[1], results["options"]["grid_cost_funtion"][:gl][1]), results["options"]["grid_cost_funtion"][:gl][2]) for θ in results["solutions"]["theta"]]
-            ka_list = [min(max(θ[2], results["options"]["grid_cost_funtion"][:ka][1]), results["options"]["grid_cost_funtion"][:ka][2]) for θ in results["solutions"]["theta"]]
-            scatter!(p_contour, g_l_list', ka_list', color="blue")
-            plot!(p_contour, legend=false)
-        end
-        plot!(p_contour)
-        xlims!(p_contour, (results["options"]["grid_cost_funtion"][:gl][1]-1,
-                           results["options"]["grid_cost_funtion"][:gl][2]+1))
-        ylims!(p_contour, (results["options"]["grid_cost_funtion"][:ka][1]-0.1,
-                           results["options"]["grid_cost_funtion"][:ka][2]+0.1))
+        p_contour = contour_plot(results, use_log=false)
         savefig(p_contour, joinpath(dir, "countour.pdf"))
+        savefig(p_contour, joinpath(dir, "countour.png"))
         # Plot log contour
-        p_contourl = contourf(results["grid"]["gl"], results["grid"]["ka"], log10.(results["grid"]["cost"]),
-                             color=:viridis, levels=10)
-        scatter!(p_contourl, [Example3.GL], [Example3.KA], color="red", legend=false)
-
-        if length(results["solutions"]) != 0
-            g_l_list = [min(max(θ[1], results["options"]["grid_cost_funtion"][:gl][1]), results["options"]["grid_cost_funtion"][:gl][2]) for θ in results["solutions"]["theta"]]
-            ka_list = [min(max(θ[2], results["options"]["grid_cost_funtion"][:ka][1]), results["options"]["grid_cost_funtion"][:ka][2]) for θ in results["solutions"]["theta"]]
-            scatter!(p_contourl, g_l_list', ka_list', color="blue")
-            plot!(p_contourl, legend=false)
-        end
-
-        plot!(p_contourl)
-        xlims!(p_contourl, (results["options"]["grid_cost_funtion"][:gl][1]-1,
-                           results["options"]["grid_cost_funtion"][:gl][2]+1))
-        ylims!(p_contourl, (results["options"]["grid_cost_funtion"][:ka][1]-0.1,
-                           results["options"]["grid_cost_funtion"][:ka][2]+0.1))
+        p_contourl = contour_plot(results, use_log=true)
         savefig(p_contourl, joinpath(dir, "countour_log.pdf"))
+        savefig(p_contourl, joinpath(dir, "countour_log.png"))
         pgfplots()
+        p_contourl = contour_plot(results, use_log=true)
+        savefig(p_contourl, joinpath(dir, "countour_log.tex"))
+        # Save solutions
+        CSV.write(joinpath(dir, "solutions.csv"),
+                  DataFrame(hcat(results["solutions"]["theta"]...)'),
+                  header=false)
+       # Save grid
+       ka = repeat(Array(results["grid"]["ka"])[1:2:end], outer=50)
+       gl = repeat(Array(results["grid"]["gl"])[1:2:end], inner=50)
+       cost = reshape(results["grid"]["cost"][1:2:end, 1:2:end]', (2500,))
+       CSV.write(joinpath(dir, "grid.csv"),
+                 DataFrame(hcat(gl, ka, cost)),
+                 header=false)
+
     end
 end
-
-# Plot graphs
-#pyplot()
-
-#for sim_len in [2^i for i in 0:7]
-    # Directory
-#    dir = root_dir * "sim_len_" * string(sim_len) * "/"
-    # Load input
-#    results = load(dir*"results.jld2")["results"]
-#end

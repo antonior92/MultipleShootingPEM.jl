@@ -33,8 +33,8 @@ addprocs(2)
     end
 end
 
-sim_len = [2^i for i in 0:10]
-#sim_len = [32, 1024]
+#sim_len = [2^i for i in 0:10]
+sim_len = [32, 1024]
 options_dicts = []
 # Near stable region
 d = Dict("data_generator" => Dict(:t=>"pendulum", :N=>N,
@@ -43,7 +43,7 @@ d = Dict("data_generator" => Dict(:t=>"pendulum", :N=>N,
                                   :seed=>1),
          "pem" => Dict(:model=>"output_error"),
          "grid_cost_funtion" => Dict(:gl=>(20, 50), :ka=>(0.5, 6),
-                                     :npoints => (100, 100)),
+                                     :npoints => (50, 50)),
          "solve_grid" => Dict(:gl=>(20, 50), :ka=>(0.5, 6),
                               :npoints => (5, 5)),
          "sim_len" => sim_len)
@@ -55,7 +55,7 @@ d = Dict("data_generator" => Dict(:t=>"pendulum", :N=>N,
                                   :seed=>1),
          "pem" => Dict(:model=>"output_error"),
          "grid_cost_funtion" => Dict(:gl=>(20, 50), :ka=>(0.5, 6),
-                                     :npoints => (100, 100)),
+                                     :npoints => (50, 50)),
          "solve_grid" => Dict(:gl=>(20, 50), :ka=>(0.5, 6),
                               :npoints => (5, 5)),
          "sim_len" => sim_len)
@@ -66,7 +66,7 @@ d = Dict("data_generator" => Dict(:t=>"inverted_pendulum",
                                   :σv=>0, :seed=>1),
          "pem" => Dict(:model=>"output_error"),
          "grid_cost_funtion" => Dict(:gl=>(20, 50), :ka=>(0.5, 6),
-                                     :npoints => (100, 100)),
+                                     :npoints => (50, 50)),
          "solve_grid" => Dict(:gl=>(20, 50), :ka=>(0.5, 6),
                               :npoints => (5, 5)),
          "sim_len" => sim_len)
