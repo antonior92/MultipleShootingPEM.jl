@@ -22,3 +22,21 @@ This package is compatible only with Julia v0.6.1-0.6.4 and was not yet adapted 
 We also require Python to be installed with SciPy version >= 1.1.
 
 
+Installation
+------------
+
+Within Julia, use the package manager to install the package `MultipleShootingPEM.jl`:
+
+```JULIA
+julia> Pkg.clone("https://github.com/antonior92/MultipleShootingPEM.jl")
+```
+
+The package installation can be tested using the command:
+```JULIA
+julia> Pkg.test("MultipleShootingPEM")
+```
+
+*Obs*:An Julia/Python interface is required by our package and the package `Conda.jl` is used internally. During the instalation of `Conda.jl`, by default, python and conda are installed again on a new path, even if python is already installed on you computer. Check the documentation [here](https://github.com/JuliaPy/Conda.jl). During use, the package `MultipleShootingPEM.jl` is supposed to install the lattest version of SciPy in the python environment `Conda.jl` is using.
+
+
+
