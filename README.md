@@ -13,3 +13,12 @@ Repository containing code for reproducing the work [**On the Smoothness of Nonl
 ```
 
 This work is still under revision. More complete documentation is still work in progress and will be provided after the revision process.
+
+Requirements
+------------
+
+This package is compatible only with Julia v0.6.1-0.6.4 and was not yet adapted to work with the latest releases of Julia programming language. You can download Julia v0.6.4 [here](https://julialang.org/downloads/oldreleases.html).
+
+We also require Python to be installed with SciPy version >= 1.1.
+
+
