@@ -1,6 +1,5 @@
 import numpy as np
 import jax.numpy as jnp
-import matplotlib.pyplot as plt
 import jax
 from functools import partial
 from base import GenerateData

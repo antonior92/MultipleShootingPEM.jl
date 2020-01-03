@@ -9,6 +9,7 @@ from noe import solve_frs
 from multistage import solve_msa
 from multiprocessing import Process, JoinableQueue, Pool
 from os import path
+import time
 
 
 parser = argparse.ArgumentParser()
@@ -27,6 +28,7 @@ parser.add_argument("--n_process",  type=int, default=4,
 parser.add_argument("--append",  action='store_true',
                     help='append solution to exist files if possible')
 args, unk = parser.parse_known_args()
+print(args)
 # Check for unknown options
 if unk:
     warn("Unknown arguments:" + str(unk) + ".")
@@ -40,7 +42,7 @@ name += '_solutions.csv'
 
 if not (args.append and path.isfile(name)):
     with open(name, 'w+') as out:
-        out.write('y[k-1], y[k-2], u[k-1]\n')
+        out.write('y[k-1], y[k-2], u[k-1], exec time\n')
 
 
 def saver(q):
@@ -48,9 +50,10 @@ def saver(q):
         val = q.get()
         if val is None:
             break
+        sol, total_time = val
         pbar.update(1)
         with open(name, 'a') as out:
-            out.write(','.join([str(x) for x in val]) + '\n')
+            out.write(','.join([str(x) for x in sol]) + ',' +  str(total_time) + '\n')
         q.task_done()
     # Finish up
     q.task_done()
@@ -60,17 +63,18 @@ def saver(q):
 gn = GenerateData(noise_std=args.noise_std)
 theta0 = [0.0, 0.0, 0.0]
 
-
 def solve(seed):
     u, y, x0 = gn.generate(seed)
     N, ny, nu, = gn.N, gn.ny, gn.nu
+    start = time.time()
     if args.type == 'narx':
         sol = solve_osa(u, y, x0, N, ny, nu, theta0)
     elif args.type == 'noe':
         sol = solve_frs(u, y, x0, N, ny, nu, theta0)
     elif args.type == 'multistage':
         sol = solve_msa(u, y, x0, N, ny, nu, args.n_stage, theta0)
-    q.put(sol)
+    total_time = time.time() - start
+    q.put([sol, total_time])
 
 
 pbar = tqdm.tqdm(initial=0, total=args.reps, smoothing=0.05)

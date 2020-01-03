@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 THETA = [1.5, -0.7, 0.5]
 class GenerateData():
