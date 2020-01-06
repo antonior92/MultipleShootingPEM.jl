@@ -27,6 +27,8 @@ parser.add_argument("--n_process",  type=int, default=4,
                     help='number of parallel processes')
 parser.add_argument("--append",  action='store_true',
                     help='append solution to exist files if possible')
+parser.add_argument("--seed", type=int, default=0,
+                    help='seed to use in the first experiments will use an increment on that.')
 args, unk = parser.parse_known_args()
 print(args)
 # Check for unknown options
@@ -44,7 +46,6 @@ if not (args.append and path.isfile(name)):
     with open(name, 'w+') as out:
         out.write('y[k-1], y[k-2], u[k-1], exec time\n')
 
-
 def saver(q):
     while True:
         val = q.get()
@@ -53,7 +54,7 @@ def saver(q):
         sol, total_time = val
         pbar.update(1)
         with open(name, 'a') as out:
-            out.write(','.join([str(x) for x in sol]) + ',' +  str(total_time) + '\n')
+            out.write(','.join([str(x) for x in sol]) + ',' + str(total_time) + '\n')
         q.task_done()
     # Finish up
     q.task_done()
@@ -82,7 +83,7 @@ q = JoinableQueue()
 p = Process(target=saver, args=(q,))
 p.start()
 pool = Pool(processes=args.n_process)
-pool.map(solve, range(args.reps))
+pool.map(solve, range(args.seed, args.reps))
 q.put(None)  # Poison pill
 q.join()
 p.join()
