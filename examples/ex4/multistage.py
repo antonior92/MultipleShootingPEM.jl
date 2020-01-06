@@ -35,15 +35,16 @@ def solve_msa(u, y, x0, N, ny, nu, n_stages, params0, verbose=0):
 
 
 if __name__ == '__main__':
+    import matplotlib.pyplot as plt
     gn = GenerateData()
     u, y, x0 = gn.generate(0)
     N, ny, nu, = gn.N, gn.ny, gn.nu
     n_stages = 10
-    y_pred = multi_step_ahead(u, y, x0, N, ny, nu, n_stages, gn.theta, verbose=2)
+    y_pred = multi_step_ahead(u, y, x0, N, ny, nu, n_stages, gn.theta)
 
     plt.plot(y_pred)
     plt.plot(y)
     plt.show()
 
-    sol = solve_msa(u, y, x0, N, ny, nu, n_stages, [0.0, 0.0, 0.0])
+    sol = solve_msa(u, y, x0, N, ny, nu, n_stages, [0.0, 0.0, 0.0], verbose=2)
     print(sol)

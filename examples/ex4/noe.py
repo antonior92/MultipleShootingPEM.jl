@@ -30,6 +30,7 @@ def solve_frs(u, y, x0, N, ny, nu, params0, verbose=0):
 
 
 if __name__ == '__main__':
+    import matplotlib.pyplot as plt
     gn = GenerateData()
     u, y, x0 = gn.generate(0)
     N, ny, nu, = gn.N, gn.ny, gn.nu
