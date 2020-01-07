@@ -21,6 +21,9 @@ parser.add_argument("--noise_std", type=float, default=0.05,
 parser.add_argument("--type", default='narx',
                     help='predictor being analysed. Options are:'
                          '{narx, noe, multistage}.')
+parser.add_argument("--time_const", default='interm',
+                    help="Set the time constant of the system being estimated. Options are:"
+                         "{interm, fast, slow}.")
 parser.add_argument("--n_stage",  type=int, default=10,
                     help='number of stages used in multistage prediction')
 parser.add_argument("--n_process",  type=int, default=4,
@@ -40,11 +43,12 @@ name = args.type
 if args.type == 'multistage':
     name += '_' + str(args.n_stage)
 name += '_' + str(args.noise_std)
+name += '_' + str(args.time_const)
 name += '_solutions.csv'
 
 if not (args.append and path.isfile(name)):
     with open(name, 'w+') as out:
-        out.write('y[k-1], y[k-2], u[k-1], exec time\n')
+        out.write('y[k-1],y[k-2],u[k-1],exec time\n')
 
 def saver(q):
     while True:
@@ -61,7 +65,7 @@ def saver(q):
 
 
 # %% Solution producer
-gn = GenerateData(noise_std=args.noise_std)
+gn = GenerateData(noise_std=args.noise_std, time_constant=args.time_const)
 theta0 = [0.0, 0.0, 0.0]
 
 def solve(seed):
