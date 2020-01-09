@@ -146,6 +146,18 @@ class MultipleShooting():
         return bmat(jac)
 
 
+def solve_ms(u, y, N, ny, nu, shoot_len, params0, verbose=0):
+    ms = MultipleShooting(u, y, N, ny, nu, shoot_len)
+
+    initial_ext_params = ms.ext_params(ms.x0s,  jnp.stack(params0))
+    nl_constr = NonlinearConstraint(ms.constr, 0, 0, ms.jac, '2-point')
+    result = minimize(ms.cost_func, initial_ext_params, jac=ms.grad, hess=ms.hess,
+                      constraints=nl_constr, method='trust-constr',
+                      options={'verbose': verbose})
+
+    return result[-3:]
+
+
 if __name__ =='__main__':
     from base import GenerateData
     gn = GenerateData(noise_std=0.05)
@@ -182,12 +194,6 @@ if __name__ =='__main__':
     #approx_jac = approx_derivative(ms.constr, ms.ext_params(x0s + 0.001, gn.theta+ 0.01), method='3-point')
     #print('jac shape', jac.shape)
     # Test solve
-    initial_ext_params = ms.ext_params(x0s,  jnp.stack([0, 0, 0]))
-    nl_constr = NonlinearConstraint(ms.constr, 0, 0, ms.jac, '2-point')
-    result = minimize(ms.cost_func, initial_ext_params, jac=ms.grad, hess=ms.hess,
-                      constraints=nl_constr,
-                      method='trust-constr',
-                      options={'verbose': 2})
-
-    print(ms.ext_params(x0s,  np.stack([0, 0, 0])))
+    params0 = jnp.stack([0., 0., 0.])
+    x = solve_ms(u, y, N, ny, nu, shoot_len, params0, verbose=2)
     print(result.x)
