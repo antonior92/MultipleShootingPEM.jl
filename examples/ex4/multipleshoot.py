@@ -2,8 +2,11 @@ import numpy as np
 import jax.numpy as jnp
 import jax
 from functools import partial
-from scipy.optimize import minimize
+from scipy.optimize import minimize, NonlinearConstraint
 from scipy.sparse.linalg import LinearOperator
+from scipy.sparse import coo_matrix, eye, bmat
+from scipy.optimize._numdiff import approx_derivative
+
 
 def shoot(u, N, nu, shoot_len, index, x0, params):
     y_pred = []
@@ -25,6 +28,7 @@ def shoot(u, N, nu, shoot_len, index, x0, params):
     y_pred = jnp.stack(y_pred)
     return y_pred, state
 
+fshoot = shoot
 
 fjac_shoot = jax.jacfwd(shoot, argnums=(-2, -1))
 
@@ -43,6 +47,9 @@ class MultipleShooting():
         self.x0s = np.stack(x0s)
         self.n_x0s = len(x0s)
         self.n_ext_params = 3 + len(x0s)
+        self.saved_ext_params = None
+        self.error, self.c = None, None
+        self.jac_out, self.jac_states = None, None
 
     def ext_params(self, x0s, params):
         return jnp.concatenate([x0s, params])
@@ -54,19 +61,19 @@ class MultipleShooting():
         return x0s, params
 
     def predict(self, x0s, params):
-        y_pred = []
+        error = []
         constr = []
         index_state = 0
         for i in range(self.N):
             if i % self.shoot_len == 0:   # Reinitialize state
                 x0 = [x0s[index_state], x0s[index_state + 1]]
-                y_pred_shoot, state_next = shoot(self.u, self.N, self.nu, self.shoot_len, i, x0, params)
+                y_pred_shoot, state_next = fshoot(self.u, self.N, self.nu, self.shoot_len, i, x0, params)
                 index_state += 2
-                y_pred.append(y_pred_shoot)
+                error.append(y_pred_shoot - self.y[i+self.ny:i+self.ny+self.shoot_len])
                 if index_state < self.n_x0s:
-                    constr.append(jnp.stack([x0s[index_state], x0s[index_state + 1]]) - state_next)
+                    constr.append(state_next - jnp.stack([x0s[index_state], x0s[index_state + 1]]))
 
-        return y_pred, constr
+        return error, constr
 
     def jacobian(self, x0s, params):
         jac = []
@@ -75,51 +82,66 @@ class MultipleShooting():
         for i in range(self.N):
             if i % self.shoot_len == 0:   # Reinitialize state
                 x0 = jnp.stack([x0s[index_state], x0s[index_state + 1]])
-                jac_shoot, jac_constr_shoot = fjac_shoot(self.u, self.N, self.nu, self.shoot_len, i, x0, params)
+                jac_shoot, jac_states_shoot = fjac_shoot(self.u, self.N, self.nu, self.shoot_len, i, x0, params)
                 jac.append(jac_shoot)
+                index_state += 2
                 if index_state < self.n_x0s:
-                    jac_states.append(jac_constr_shoot)
+                    jac_states.append(jac_states_shoot)
 
         return jac, jac_states
 
-    def cost_func(self, ext_params):
-        x0s, params = self.split_params(ext_params)
-        y_pred, _ = self.predict(x0s, params)
-        y_pred = jnp.concatenate(y_pred)
-        return jnp.sum((y_pred - self.y[-N:]) * (y_pred - self.y[-N:]))
+    def compute(self, ext_params):
+        if not np.equal(ext_params, self.saved_ext_params).all():
+            x0s, params = self.split_params(ext_params)
+            self.error, self.c = self.predict(x0s, params)
+            self.jac_out, self.jac_states = self.jacobian(x0s, params)
+            self.saved_ext_params = ext_params
 
-    def constr(self, ext_params):
-        x0s, params = self.split_params(ext_params)
-        _, constr = self.predict(x0s, params)
-        constr = jnp.concatenate(y_pred)
-        return constr
+    def cost_func(self, ext_params):
+        self.compute(ext_params)
+        error = jnp.concatenate(self.error)
+        mse = error.dot(error)
+        return mse
 
     def grad(self, ext_params):
-        x0s, params = self.split_params(ext_params)
-        y_pred, _ = self.predict(x0s, params)
-        jac, _ = self.jacobian(x0s, params)
-        jac = np.concatenate([jnp.concatenate(j, axis=1) for j in jac], axis=0)
-        jac_x0s, jac_params = tuple(zip(*jac))
+        self.compute(ext_params)
+        jac_x0s, jac_params = tuple(zip(*self.jac_out))
         jac_params = jnp.concatenate(jac_params, axis=0)
-        grad_params = jac_params.T.dot(jnp.concatenate(y_pred))
-        grad_x0 = jnp.concatenate([jac_x0s[i].T.dot(y_pred[i]) for i in range(len(y_pred))])
-        grad = ext_params(grad_x0, grad_params)
+        grad_params = jac_params.T.dot(jnp.concatenate(self.error))
+        grad_x0 = jnp.concatenate([jac_x0s[i].T.dot(self.error[i]) for i in range(len(self.error))])
+        grad = self.ext_params(grad_x0, grad_params)
         return grad
 
     def hess(self, ext_params):
-        x0s, params = self.split_params(ext_params)
-        jac, _ = self.jacobian(x0s, params)
-        jac = np.concatenate([jnp.concatenate(j, axis=1) for j in jac], axis=0)
-        jac_x0s, jac_params = tuple(zip(*jac))
+        self.compute(ext_params)
+        jac_x0s, jac_params = tuple(zip(*self.jac_out))
         jac_params = jnp.concatenate(jac_params, axis=0)
 
-        def hessp(ext_p):
+        def matvec(ext_p):
             p_x0s, p_params = self.split_params(ext_p)
-            hessp_x0s = jnp.concatenate(jac_x0s[i].T.dot(jac_x0s[i].dot(jnp.stack(p_x0s[i], p_x0s[i+1]))) for i in range(p_x0s, step=2)])
+            hessp_x0s = jnp.concatenate(
+                [jac_x0s[i].T.dot(jac_x0s[i].dot(jnp.stack([p_x0s[2*i], p_x0s[2*i+1]]))) for i in range(len(jac_x0s))])
             hessp_params = jac_params.T.dot(jac_params.dot(p_params))
-            return ext_params(hessp_x0s, hessp_params)
+            return self.ext_params(hessp_x0s, hessp_params)
 
-        return LinearOperator((self.n_ext_params, self.n_ext_params), matvec(hessp))
+        return LinearOperator((self.n_ext_params, self.n_ext_params), matvec=matvec)
+
+    def constr(self, ext_params):
+        self.compute(ext_params)
+        constr = jnp.concatenate(self.c)
+        return constr
+
+    def jac(self, ext_params):
+        self.compute(ext_params)
+        # Assemble Jac
+        jac = [
+            [None] * i +
+            [coo_matrix(self.jac_states[i][0])] +
+            [-eye(2)] +
+            [None] * (self.n_x0s//2 - 1 - i) +
+            [coo_matrix(self.jac_states[i][1])]
+            for i in range(self.n_x0s//2 - 1)]
+        return bmat(jac)
 
 
 if __name__ =='__main__':
@@ -128,9 +150,7 @@ if __name__ =='__main__':
     gn = GenerateData()
     u, y, x0 = gn.generate(0)
     N, ny, nu, = gn.N, gn.ny, gn.nu
-
     shoot_len = 1
-
     # Instanciate
     ms = MultipleShooting(u, y, N, ny, nu, shoot_len)
     # Get x0s
@@ -141,12 +161,8 @@ if __name__ =='__main__':
     y_pred, c = ms.predict(x0s, gn.theta)
     # Check
     print('output size = {}, n_const = {}'.format(len(y_pred), len(c)))
-    plt.plot(y_pred)
-    plt.plot(y)
-    plt.show()
     # Compute cost function
     cost = ms.cost_func(ms.ext_params(x0s, gn.theta))
-    print('cost = {}'.format(cost))
     # Compute constr
     constr = ms.constr(ms.ext_params(x0s, gn.theta))
     print('constr len = {}'.format(len(constr)))
@@ -154,5 +170,23 @@ if __name__ =='__main__':
     jac, jac_states = ms.jacobian(x0s, gn.theta)
     print('jac len = {}, jac states len = {}'.format(len(jac), len(jac_states)))
     # Check grad
-    #grad = ms.grad(ms.ext_params(x0s, gn.theta))
-    #print('grad len = {}'.format(len(grad)))
+    grad = ms.grad(ms.ext_params(x0s, gn.theta))
+    print('grad len = {}'.format(len(grad)))
+    # Check hess
+    hessp = ms.hess(ms.ext_params(x0s, gn.theta))
+    print('hessp len = {}'.format(len(hessp.dot(ms.ext_params(x0s, gn.theta)))))
+    # Check Jacobian
+    jac = ms.jac(ms.ext_params(x0s + 0.001, gn.theta + 0.01))
+    jac_array = jac.toarray()
+    #approx_jac = approx_derivative(ms.constr, ms.ext_params(x0s + 0.001, gn.theta+ 0.01), method='3-point')
+    #print('jac shape', jac.shape)
+    # Test solve
+    initial_ext_params = ms.ext_params(x0s,  jnp.stack([0, 0, 0]))
+    nl_constr = NonlinearConstraint(ms.constr, 0, 0, ms.jac, '2-point')
+    result = minimize(ms.cost_func, initial_ext_params, jac=ms.grad, hess=ms.hess,
+                      constraints=nl_constr,
+                      method='trust-constr',
+                      options={'verbose': 2})
+
+    print(ms.ext_params(x0s,  np.stack([0, 0, 0])))
+    print(result.x)
