@@ -28,15 +28,17 @@ def shoot(u, N, nu, shoot_len, index, x0, params):
     y_pred = jnp.stack(y_pred)
     return y_pred, state
 
-fshoot = shoot
 
-fjac_shoot = jax.jacfwd(shoot, argnums=(-2, -1))
+fshoot = jax.jit(shoot, static_argnums=(0, 1, 2, 3, 4))
+
+
+fjac_shoot = jax.jit(jax.jacfwd(shoot, argnums=(-2, -1)), static_argnums=(0, 1, 2, 3, 4))
 
 
 class MultipleShooting():
 
     def __init__(self, u, y, N, ny, nu, shoot_len):
-        self.u, self.y = u, y
+        self.u, self.y = jnp.array(u), jnp.array(y)
         self.N, self.ny, self.nu = N, ny, nu
         self.shoot_len = shoot_len
         x0s = []
@@ -56,8 +58,8 @@ class MultipleShooting():
 
     def split_params(self, ext_params):
         ny, nu = self.ny, self.nu
-        params = ext_params[-(nu+ny):]
-        x0s = ext_params[:-(nu+ny)]
+        params = jnp.array(ext_params[-(nu+ny):])
+        x0s = jnp.array(ext_params[:-(nu+ny)])
         return x0s, params
 
     def predict(self, x0s, params):
@@ -66,7 +68,7 @@ class MultipleShooting():
         index_state = 0
         for i in range(self.N):
             if i % self.shoot_len == 0:   # Reinitialize state
-                x0 = [x0s[index_state], x0s[index_state + 1]]
+                x0 = jnp.stack([x0s[index_state], x0s[index_state + 1]])
                 y_pred_shoot, state_next = fshoot(self.u, self.N, self.nu, self.shoot_len, i, x0, params)
                 index_state += 2
                 error.append(y_pred_shoot - self.y[i+self.ny:i+self.ny+self.shoot_len])
@@ -145,9 +147,8 @@ class MultipleShooting():
 
 
 if __name__ =='__main__':
-    import matplotlib.pyplot as plt
     from base import GenerateData
-    gn = GenerateData()
+    gn = GenerateData(noise_std=0.05)
     u, y, x0 = gn.generate(0)
     N, ny, nu, = gn.N, gn.ny, gn.nu
     shoot_len = 1
