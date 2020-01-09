@@ -22,7 +22,6 @@ for a given estimator.
 
 In order to run the set of experiments described in the paper the following bash command sequence can be used:
 ```bash
-
 for tt in interm fast slow; do for sl in 2 5 10 20; do python generate_solutions.py --n_process 16 --shoot_len $sl --time_const $tt --type multipleshoot; done; done
 for tt in interm fast slow; do python generate_solutions.py --n_process 16 --time_const $tt --type narx; done
 for tt in interm fast slow; do python generate_solutions.py --n_process 16 --time_const $tt --type noe; done
