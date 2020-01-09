@@ -10,6 +10,7 @@ from multistage import solve_msa
 from multipleshoot import solve_ms
 from multiprocessing import Process, JoinableQueue, Pool
 from os import path
+import os
 import time
 
 
@@ -21,7 +22,7 @@ parser.add_argument("--noise_std", type=float, default=0.05,
                     help='output noise standard deviation')
 parser.add_argument("--type", default='narx',
                     help='predictor being analysed. Options are:'
-                         '{narx, noe, multistage multipleshoot}.')
+                         '{narx, noe, multistage, multipleshoot}.')
 parser.add_argument("--time_const", default='interm',
                     help="Set the time constant of the system being estimated. Options are:"
                          "{interm, fast, slow}.")
@@ -35,6 +36,8 @@ parser.add_argument("--append",  action='store_true',
                     help='append solution to exist files if possible')
 parser.add_argument("--seed", type=int, default=0,
                     help='seed to use in the first experiments will use an increment on that.')
+parser.add_argument('--folder', default='./solutions',
+                    help='output folder (default: ./solutions)')
 args, unk = parser.parse_known_args()
 print(args)
 # Check for unknown options
@@ -42,6 +45,7 @@ if unk:
     warn("Unknown arguments:" + str(unk) + ".")
 
 # %% Saver
+# Define file name
 name = args.type
 if args.type == 'multistage':
     name += '_' + str(args.n_stage)
@@ -50,7 +54,11 @@ if args.type == 'multipleshoot':
 name += '_' + str(args.noise_std)
 name += '_' + str(args.time_const)
 name += '_solutions.csv'
-
+name = os.path.join(args.folder, name)
+# Check folder
+if not path.exists(args.folder):
+    os.makedirs(args.folder)
+# write header
 if not (args.append and path.isfile(name)):
     with open(name, 'w+') as out:
         out.write('y[k-1],y[k-2],u[k-1],exec time\n')
