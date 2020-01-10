@@ -155,7 +155,7 @@ def solve_ms(u, y, N, ny, nu, shoot_len, params0, verbose=0):
                       constraints=nl_constr, method='trust-constr',
                       options={'verbose': verbose})
 
-    return result[-3:]
+    return result['x'][-3:]
 
 
 if __name__ =='__main__':
@@ -196,4 +196,4 @@ if __name__ =='__main__':
     # Test solve
     params0 = jnp.stack([0., 0., 0.])
     x = solve_ms(u, y, N, ny, nu, shoot_len, params0, verbose=2)
-    print(result.x)
+    print(x)
