@@ -61,7 +61,7 @@ if not path.exists(args.folder):
 # write header
 if not (args.append and path.isfile(name)):
     with open(name, 'w+') as out:
-        out.write('y[k-1],y[k-2],u[k-1],exec time\n')
+        out.write('y[k-1],y[k-2],u[k-1],exec time,seed\n')
 
 
 def saver(q):
@@ -69,10 +69,10 @@ def saver(q):
         val = q.get()
         if val is None:
             break
-        sol, total_time = val
+        sol, total_time, seed = val
         pbar.update(1)
         with open(name, 'a') as out:
-            out.write(','.join([str(x) for x in sol]) + ',' + str(total_time) + '\n')
+            out.write(','.join([str(x) for x in sol]) + ',' + str(total_time) + ',' + str(seed) + '\n')
         q.task_done()
     # Finish up
     q.task_done()
@@ -96,7 +96,7 @@ def solve(seed):
     elif args.type == 'multipleshoot':
         sol = solve_ms(u, y, N, ny, nu, args.shoot_len, theta0)
     total_time = time.time() - start
-    q.put([sol, total_time])
+    q.put([sol, total_time, seed])
 
 
 pbar = tqdm.tqdm(initial=0, total=args.reps, smoothing=0.05)
