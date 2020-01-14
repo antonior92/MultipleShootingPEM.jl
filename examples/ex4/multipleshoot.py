@@ -146,24 +146,25 @@ class MultipleShooting():
         return bmat(jac)
 
 
-def solve_ms(u, y, N, ny, nu, shoot_len, params0, verbose=0):
+def solve_ms(u, y, N, ny, nu, shoot_len, params0, verbose=0, initial_constr_penalty=1, initial_trust_radius=1):
     ms = MultipleShooting(u, y, N, ny, nu, shoot_len)
 
     initial_ext_params = ms.ext_params(ms.x0s,  jnp.stack(params0))
     nl_constr = NonlinearConstraint(ms.constr, 0, 0, ms.jac, '2-point')
     result = minimize(ms.cost_func, initial_ext_params, jac=ms.grad, hess=ms.hess,
                       constraints=nl_constr, method='trust-constr',
-                      options={'verbose': verbose})
+                      options={'verbose': verbose, 'initial_constr_penalty': initial_constr_penalty,
+                               'initial_trust_radius': initial_trust_radius})
 
     return result['x'][-3:]
 
 
 if __name__ =='__main__':
     from base import GenerateData
-    gn = GenerateData(noise_std=0.05)
-    u, y, x0 = gn.generate(0)
+    gn = GenerateData(noise_std=0.0, time_constant='slow')
+    u, y, x0 = gn.generate(28)
     N, ny, nu, = gn.N, gn.ny, gn.nu
-    shoot_len = 1
+    shoot_len = 2
     # Instanciate
     ms = MultipleShooting(u, y, N, ny, nu, shoot_len)
     # Get x0s
