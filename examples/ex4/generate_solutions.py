@@ -38,6 +38,12 @@ parser.add_argument("--seed", type=int, default=0,
                     help='seed to use in the first experiments will use an increment on that.')
 parser.add_argument('--folder', default='./solutions',
                     help='output folder (default: ./solutions)')
+parser.add_argument('--initial_constr_penalty', default=1.0, type=float,
+                    help="initial penalty constraint for multiple shooting estimation. "
+                         "See scipy.optimize.minimize(method=’trust-constr’) documentation")
+parser.add_argument('--initial_trust_radius', default=1.0, type=float,
+                    help="initial penalty constraint for multiple shooting estimation. "
+                         "See scipy.optimize.minimize(method=’trust-constr’) documentation")
 args, unk = parser.parse_known_args()
 print(args)
 # Check for unknown options
@@ -94,7 +100,9 @@ def solve(seed):
     elif args.type == 'multistage':
         sol = solve_msa(u, y, x0, N, ny, nu, args.n_stage, theta0)
     elif args.type == 'multipleshoot':
-        sol = solve_ms(u, y, N, ny, nu, args.shoot_len, theta0)
+        sol = solve_ms(u, y, N, ny, nu, args.shoot_len, theta0,
+                       initial_constr_penalty=args.initial_constr_penalty,
+                       initial_trust_radius=args.initial_trust_radius)
     total_time = time.time() - start
     q.put([sol, total_time, seed])
 

@@ -154,7 +154,7 @@ def solve_ms(u, y, N, ny, nu, shoot_len, params0, verbose=0, initial_constr_pena
     result = minimize(ms.cost_func, initial_ext_params, jac=ms.grad, hess=ms.hess,
                       constraints=nl_constr, method='trust-constr',
                       options={'verbose': verbose, 'initial_constr_penalty': initial_constr_penalty,
-                               'initial_trust_radius': initial_trust_radius})
+                               'initial_tr_radius': initial_trust_radius})
 
     return result['x'][-3:]
 

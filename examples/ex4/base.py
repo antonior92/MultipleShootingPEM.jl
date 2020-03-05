@@ -42,7 +42,7 @@ class GenerateData():
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
-    gn = GenerateData(time_constant='slow')
+    gn = GenerateData(time_constant='fast')
     u, y, x0 = gn.generate(0)
     plt.plot(u)
     plt.plot(y)
