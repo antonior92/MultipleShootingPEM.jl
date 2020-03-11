@@ -156,7 +156,7 @@ def solve_ms(u, y, N, ny, nu, shoot_len, params0, verbose=0, initial_constr_pena
                       options={'verbose': verbose, 'initial_constr_penalty': initial_constr_penalty,
                                'initial_tr_radius': initial_trust_radius})
 
-    return result['x'][-3:]
+    return result['x'][-3:], result['nfev']
 
 
 if __name__ =='__main__':
@@ -196,5 +196,5 @@ if __name__ =='__main__':
     #print('jac shape', jac.shape)
     # Test solve
     params0 = jnp.stack([0., 0., 0.])
-    x = solve_ms(u, y, N, ny, nu, shoot_len, params0, verbose=2)
-    print(x)
+    x, nfev = solve_ms(u, y, N, ny, nu, shoot_len, params0, verbose=2)
+    print(x, nfev)

@@ -26,7 +26,7 @@ def solve_frs(u, y, x0, N, ny, nu, params0, verbose=0):
     fun = lambda params: free_run_simulation(u, y, x0, N, ny, nu, params) - y[-N:]
     jac = jax.jacfwd(partial(free_run_simulation, u, y, x0, N, ny, nu))
     sol = least_squares(fun, params0, jac, verbose=verbose)
-    return sol['x']
+    return sol['x'], sol['nfev']
 
 
 if __name__ == '__main__':
@@ -34,11 +34,11 @@ if __name__ == '__main__':
     gn = GenerateData()
     u, y, x0 = gn.generate(0)
     N, ny, nu, = gn.N, gn.ny, gn.nu
-    y_pred = free_run_simulation(u, y, x0, N, ny, nu, gn.theta, verbose=2)
+    y_pred = free_run_simulation(u, y, x0, N, ny, nu, gn.theta)
 
     plt.plot(y_pred)
     plt.plot(y)
     plt.show()
 
-    sol = solve_frs(u, y, x0, N, ny, nu, [0.0]*3)
-    print(sol)
+    sol, nfev = solve_frs(u, y, x0, N, ny, nu, [0.0]*3, verbose=2)
+    print(sol, nfev)

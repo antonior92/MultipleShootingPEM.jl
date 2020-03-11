@@ -26,7 +26,7 @@ def solve_osa(u, y, x0, N, ny, nu, params0, verbose=0):
     jac_1stepa = np.asarray(fjac_1stepa(params0))
 
     est_param, _, _, _ = np.linalg.lstsq(jac_1stepa, y[-N:], rcond=None)
-    return est_param
+    return est_param, 1
 
 
 if __name__ =='__main__':

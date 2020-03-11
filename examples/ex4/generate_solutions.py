@@ -67,7 +67,7 @@ if not path.exists(args.folder):
 # write header
 if not (args.append and path.isfile(name)):
     with open(name, 'w+') as out:
-        out.write('y[k-1],y[k-2],u[k-1],exec time,seed\n')
+        out.write('y[k-1],y[k-2],u[k-1],exec time,seed,nfev\n')
 
 
 def saver(q):
@@ -75,10 +75,10 @@ def saver(q):
         val = q.get()
         if val is None:
             break
-        sol, total_time, seed = val
+        sol, total_time, seed, nfev = val
         pbar.update(1)
         with open(name, 'a') as out:
-            out.write(','.join([str(x) for x in sol]) + ',' + str(total_time) + ',' + str(seed) + '\n')
+            out.write(','.join([str(x) for x in sol]) + ',' + str(total_time) + ',' + str(seed) + ',' + str(nfev) + '\n')
         q.task_done()
     # Finish up
     q.task_done()
@@ -94,17 +94,17 @@ def solve(seed):
     N, ny, nu, = gn.N, gn.ny, gn.nu
     start = time.time()
     if args.type == 'narx':
-        sol = solve_osa(u, y, x0, N, ny, nu, theta0)
+        sol, nfev = solve_osa(u, y, x0, N, ny, nu, theta0)
     elif args.type == 'noe':
-        sol = solve_frs(u, y, x0, N, ny, nu, theta0)
+        sol, nfev = solve_frs(u, y, x0, N, ny, nu, theta0)
     elif args.type == 'multistage':
-        sol = solve_msa(u, y, x0, N, ny, nu, args.n_stage, theta0)
+        sol, nfev = solve_msa(u, y, x0, N, ny, nu, args.n_stage, theta0)
     elif args.type == 'multipleshoot':
-        sol = solve_ms(u, y, N, ny, nu, args.shoot_len, theta0,
+        sol, nfev = solve_ms(u, y, N, ny, nu, args.shoot_len, theta0,
                        initial_constr_penalty=args.initial_constr_penalty,
                        initial_trust_radius=args.initial_trust_radius)
     total_time = time.time() - start
-    q.put([sol, total_time, seed])
+    q.put([sol, total_time, seed, nfev])
 
 
 pbar = tqdm.tqdm(initial=0, total=args.reps, smoothing=0.05)

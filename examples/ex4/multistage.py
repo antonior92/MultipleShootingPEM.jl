@@ -31,7 +31,7 @@ def solve_msa(u, y, x0, N, ny, nu, n_stages, params0, verbose=0):
     fun = lambda params: multi_step_ahead(u, y, x0, N, ny, nu, n_stages, params) - y[-N:]
     jac = jax.jacfwd(partial(multi_step_ahead, u, y, x0, N, ny, nu, n_stages))
     sol = least_squares(fun, params0, jac, verbose=verbose)
-    return sol['x']
+    return sol['x'], sol['nfev']
 
 
 if __name__ == '__main__':
@@ -46,5 +46,5 @@ if __name__ == '__main__':
     plt.plot(y)
     plt.show()
 
-    sol = solve_msa(u, y, x0, N, ny, nu, n_stages, [0.0, 0.0, 0.0], verbose=2)
-    print(sol)
+    sol, nfev = solve_msa(u, y, x0, N, ny, nu, n_stages, [0.0, 0.0, 0.0], verbose=2)
+    print(sol, nfev)
