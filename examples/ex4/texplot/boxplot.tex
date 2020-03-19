@@ -1,0 +1,157 @@
+\documentclass{article}
+\usepackage{pgfplots}
+\usepackage{graphicx}
+\usepackage{subfig}
+\usepackage[legalpaper, margin=0.5in]{geometry}
+\usepackage{xifthen}
+\usepackage{siunitx}
+
+
+
+
+%---------------------------------------------------------------%
+\begin{document}
+
+% Define variable
+\newcommand{\vv}{0}  % 0 -> y[k-1]; 1 -> y[k-2]; 2 -> u[k-1]
+\newcommand{\thetaslow}{1.8}
+\newcommand{\thetainterm}{1.5}
+\newcommand{\thetafast}{0.5}
+\newcommand{\sccc}{200}
+\newcommand{\aplot}[2]{
+  \addplot[area legend,
+      hist={bins=#2, data min=-\rg, data max=\rg},
+    fill=#1,
+    draw=#1!50!black]
+    table[x index=\vv, col sep=comma, skip first n=1,
+    y expr={(x-\thth) > -\thres ? ((x-\thth) < \thres ? (x-\thth) : ((log10(x-\thth)) + 2)/\sccc + \thres) : (-log10(-x+\thth) -2)/\sccc - \thres)}]}
+  \newcommand{\narxnoe}[1]{
+    \aplot{red}{80} {../solutions/narx/narx_0.05_#1_solutions.csv};
+    \aplot{blue}{80} {../solutions/noe/noe_0.05_#1_solutions.csv};
+}
+
+\newcommand{\multipleshoot}[1]{
+    \aplot{red}{80} {../solutions/multipleshoot_cp_100/multipleshoot_2_0.05_#1_solutions.csv};
+    \aplot{orange}{80} {../solutions/multipleshoot_cp_100/multipleshoot_5_0.05_#1_solutions.csv};
+    \aplot{cyan}{80} {../solutions/multipleshoot_cp_100/multipleshoot_10_0.05_#1_solutions.csv};
+    \aplot{blue}{80} {../solutions/multipleshoot_cp_100/multipleshoot_20_0.05_#1_solutions.csv};
+}
+
+
+\newcommand{\multistage}[1]{
+    \aplot{red}{80} {../solutions/multistage/multistage_3_0.05_#1_solutions.csv};
+    \aplot{orange}{80} {../solutions/multistage/multistage_5_0.05_#1_solutions.csv};
+    \aplot{green}{80} {../solutions/multistage/multistage_7_0.05_#1_solutions.csv};
+    \aplot{cyan}{80} {../solutions/multistage/multistage_10_0.05_#1_solutions.csv};
+    \aplot{blue}{80} {../solutions/multistage/multistage_20_0.05_#1_solutions.csv};
+}
+
+\newenvironment{apicture}[2]{
+  \centering
+  \ifthenelse{\equal{#1}{fast}}{
+   \newcommand{\thres}{0.01}
+    \newcommand{\rg}{0.02}
+    \newcommand{\thth}{\thetafast}
+    \newcommand{\ppy}[1]{##1}
+  }{\ifthenelse{\equal{#1}{slow}}{
+      \newcommand{\thres}{0.01}
+      \newcommand{\rg}{0.02}
+      \newcommand{\thth}{\thetaslow}
+      \newcommand{\ppy}[1]{}
+    }{
+      \newcommand{\thres}{0.01}
+      \newcommand{\rg}{0.02}
+      \newcommand{\thth}{\thetainterm}
+      \newcommand{\ppy}[1]{}
+    }
+  }
+  \ifthenelse{\equal{#2}{multistage}}{\newcommand{\ppx}[1]{##1}}{\newcommand{\ppx}[1]{}}
+    \begin{tikzpicture}
+      \begin{axis}[scaled x ticks = false, xticklabel style={/pgf/number format/fixed, rotate=75},
+        height=0.25\textwidth, width=0.33\textwidth, xmin={-\rg}, xmax={\rg}, ymin=0, ymax=40, grid=major,
+        legend style={at={(1.1,1.05)}, anchor=north east},
+        ytick={0, 10, 20, 30, 40}, yticklabels={\ppy{0}, \ppy{10}, \ppy{20}, \ppy{30}, \ppy{40}},
+        xtick={-0.02, -0.015, -0.01, -0.005, 0,  0.005, 0.01, 0.015, 0.02}, xticklabels={\ppx{-1}, \ppx{-0.1},\ppx{-0.01}, \ppx{-0.005}, \ppx{0}, \ppx{0.005}, \ppx{0.01}, \ppx{0.1}, \ppx{1}},
+        extra x ticks={ -0.01977121, -0.01951545, -0.01922549, -0.01889076,
+       -0.01849485, -0.0180103 , -0.01738561, -0.01650515, -0.015     ,
+       -0.01477121, -0.01451545, -0.01422549, -0.01389076, -0.01349485,
+       -0.0130103 , -0.01238561, -0.01150515,
+       0.01150515, 0.01238561, 0.0130103 , 0.01349485,
+       0.01389076, 0.01422549, 0.01451545, 0.01477121, 0.015     ,
+       0.01650515, 0.01738561, 0.0180103 , 0.01849485, 0.01889076,
+       0.01922549, 0.01951545, 0.01977121
+        }, extra x tick style={xticklabel=\empty}
+        ]
+        \addplot +[dashed, black, mark=none, empty legend] coordinates {(-\thres, 0) (-\thres, 40)};
+        \addplot +[dashed, black, mark=none, forget plot] coordinates {(\thres, 0) (\thres, 40)};
+
+    % Legend
+    % Legend
+    \ifthenelse{\equal{#1}{slow}}{
+      \ifthenelse{\equal{#2}{narxnoe}}{
+        \legend{,ARX, OE}
+      }{\ifthenelse{\equal{#2}{multipleshoot}}{
+          \legend{$\Delta m_{\max}$, $2$, $5$, $10$, $20$}
+        }{\legend{$K$, $3$,  $5$, $7$, $10$, $20$}
+        }
+      }
+    }{}
+  }
+  {
+  \end{axis}
+\end{tikzpicture}}
+
+
+\begin{figure}
+  \subfloat[][]{
+    \begin{apicture}{fast}{narxnoe}
+      \narxnoe{fast}
+     \end{apicture}
+
+}
+\subfloat[][]{
+  \begin{apicture}{interm}{narxnoe}
+    \narxnoe{interm}
+  \end{apicture}
+}
+\subfloat[][]{
+  \begin{apicture}{slow}{narxnoe}
+    \narxnoe{slow}
+  \end{apicture}
+}
+\\  % -------------
+\subfloat[][]{
+  \begin{apicture}{fast}{multipleshoot}
+    \multipleshoot{fast}
+  \end{apicture}
+}
+\subfloat[][]{
+   \begin{apicture}{interm}{multipleshoot}
+    \multipleshoot{interm}
+   \end{apicture}
+}
+\subfloat[][]{
+  \begin{apicture}{slow}{multipleshoot}
+    \multipleshoot{slow}
+   \end{apicture}
+}
+\\  % -------------
+\subfloat[][]{
+  \begin{apicture}{fast}{multistage}
+    \multistage{fast}
+   \end{apicture}
+}
+\subfloat[][]{
+ \begin{apicture}{interm}{multistage}
+    \multistage{interm}
+ \end{apicture}
+}
+\subfloat[][]{
+  \begin{apicture}{slow}{multistage}
+    \multistage{slow}
+  \end{apicture}
+}
+
+\caption{blabal}
+\end{figure}
+\end{document}

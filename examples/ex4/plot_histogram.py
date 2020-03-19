@@ -17,9 +17,9 @@ tp += [[folder + 'narx/narx'] + [folder + 'noe/noe']]
 tp += [[folder + 'multipleshoot_cp_100/multipleshoot_{}'.format(shoot_len) for shoot_len in list_shoot_len]]
 tp += [[folder + 'multistage/multistage_{}'.format(n_stage) for n_stage in list_n_stage]]
 bins = 50
-rg = 0.015
+rg = 0.02
 thres = 0.5 *rg
-logscale = 200
+logscale = 6.5
 
 for kk, v in enumerate(vars):
     fig, ax = plt.subplots(nrows=3, ncols=3, sharex=True)
@@ -38,11 +38,11 @@ for kk, v in enumerate(vars):
                 two_scales = np.zeros_like(normalized_value)
                 for j in range(len(normalized_value)):
                     if normalized_value[j] > thres:
-                        two_scales[j] = np.log(normalized_value[j]-thres + 1)/logscale + thres
+                        two_scales[j] = np.log10(normalized_value[j]-thres + 1)/logscale + thres
                     elif thres > normalized_value[j] > -thres:
                         two_scales[j] = normalized_value[j]
                     else:
-                        two_scales[j] = -np.log(thres-normalized_value[j] + 1)/logscale - thres
+                        two_scales[j] = -np.log10(-thres-normalized_value[j] + 1)/logscale - thres
                 ax[i, ll].hist(two_scales, label=t, bins=bins, range=[-rg, rg])
                 ax[i, ll].set_xlim([-rg, rg])
                 ax[i, ll].axvline(thres, ls='--')
