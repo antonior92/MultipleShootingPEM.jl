@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019) (preloaded format=pdflatex 2019.9.30)  18 MAR 2020 19:44
+This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019) (preloaded format=pdflatex 2019.9.30)  29 MAR 2020 17:24
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -1052,27 +1052,12 @@ PGFPlots: reading {../solutions/multistage/multistage_10_0.05_slow_solutions.cs
 v}
 PGFPlots: reading {../solutions/multistage/multistage_20_0.05_slow_solutions.cs
 v}
-
-Overfull \hbox (18.39632pt too wide) in paragraph at lines 111--154
-[][][][] 
- []
-
-
-Overfull \hbox (18.39632pt too wide) in paragraph at lines 111--154
-[][][] 
- []
-
-
-Overfull \hbox (28.72911pt too wide) in paragraph at lines 111--154
-[][][] 
- []
-
 [1{/usr/local/texlive/2019/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
 (./boxplot.aux) ) 
 Here is how much of TeX's memory you used:
  36085 strings out of 492616
  880235 string characters out of 6129481
- 1258907 words of memory out of 5000000
+ 1258916 words of memory out of 5000000
  39514 multiletter control sequences out of 15000+600000
  534046 words of font info for 31 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
@@ -1082,7 +1067,7 @@ s/cm/cmmi10.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts
 /cm/cmr10.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/c
 m/cmr7.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1/public/amsfonts/cm/c
 mr8.pfb>
-Output written on boxplot.pdf (1 page, 47899 bytes).
+Output written on boxplot.pdf (1 page, 48111 bytes).
 PDF statistics:
  27 PDF objects out of 1000 (max. 8388607)
  19 compressed objects within 1 object stream
